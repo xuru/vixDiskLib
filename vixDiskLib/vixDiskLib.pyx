@@ -836,11 +836,6 @@ cdef void PanicFunc(char *fmt, va_list args):
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
-# open flags
-VIXDISKLIB_FLAG_OPEN_UNBUFFERED  = 1
-VIXDISKLIB_FLAG_OPEN_SINGLE_LINK = 2
-VIXDISKLIB_FLAG_OPEN_READ_ONLY   = 4
-
 cdef class VixDiskLibBase:
     cdef VixDiskLibConnection connection
     cdef VixDiskLibHandle handle
@@ -867,7 +862,7 @@ cdef class VixDiskLibBase:
     cpdef _connect(self, vmname, hostname, username, password, snapshotRef, readonly = False):
         cdef VixDiskLibConnectParams connectParams
         
-        connectParams.vmName = strdup(vmname)
+        connectParams.vmxSpec = strdup(vmname)
         connectParams.serverName = strdup(hostname)
         connectParams.credType = VIXDISKLIB_CRED_UID
         connectParams.creds.uid.userName = strdup(username)

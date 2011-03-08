@@ -1,13 +1,19 @@
 # cython: profile=True
 
 import logging
-from vixDiskLib import *
+from vixDiskLib import VixDiskLibBase, VixDiskLibError #IGNORE:W0401
+
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 class VDDKError(Exception):
     pass
+
+# open flags
+VIXDISKLIB_FLAG_OPEN_UNBUFFERED  = 1
+VIXDISKLIB_FLAG_OPEN_SINGLE_LINK = 2
+VIXDISKLIB_FLAG_OPEN_READ_ONLY   = 4
 
 class VixDiskLib(VixDiskLibBase):
     def __init__(self, hostname, username, password):
