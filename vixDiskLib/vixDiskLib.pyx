@@ -1,6 +1,11 @@
 
 from exceptions import Exception
 from common cimport *
+import logging
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+
 import numpy as np
 # "cimport" is used to import special compile-time information
 # about the numpy module (this is stored in a file numpy.pxd which is
@@ -10,15 +15,39 @@ cimport numpy as np
 class VixDiskLibError(Exception):
     pass
 
+cdef extern from "Python.h":
+    ctypedef int Py_intptr_t
+    void Py_INCREF(object)
+    void Py_DECREF(object)
+    object PyCObject_FromVoidPtrAndDesc( void* cobj, void* desc, void (*destr)(void *, void *))
+
+cdef extern from "numpy/arrayobject.h":
+    cdef object PyArray_SimpleNewFromData(int nd,
+                                          np.npy_intp *dims,
+                                          int typenum,
+                                          void *data)
+    cdef object PyArray_ZEROS(int nd,
+                              np.npy_intp *dims,
+                              int typenum,
+                              int fortran)
+    cdef object PyArray_SimpleNew(int nd,
+                                  np.npy_intp *dims,
+                                  int typenum)
+    cdef object PyArray_Arange(double start,
+                               double stop,
+                               double step,
+                               int typenum)
+
+
 cdef extern from "vixDiskLib.h":
     ctypedef uint64 VixError
     ctypedef uint64 VixDiskLibSectorType
 
     cdef uint32 VIXDISKLIB_SECTOR_SIZE = 512
-    #ctypedef enum OpenFlags:
-    #    VIXDISKLIB_FLAG_OPEN_UNBUFFERED  = 1, # disable host disk caching
-    #    VIXDISKLIB_FLAG_OPEN_SINGLE_LINK = 2, # don't open parent disk(s)
-    #    VIXDISKLIB_FLAG_OPEN_READ_ONLY   = 4 # open read-only
+    ctypedef enum VIXDISKLIB_OPEN_FLAGS:
+        VIXDISKLIB_FLAG_OPEN_UNBUFFERED  = 1, # disable host disk caching
+        VIXDISKLIB_FLAG_OPEN_SINGLE_LINK = 2, # don't open parent disk(s)
+        VIXDISKLIB_FLAG_OPEN_READ_ONLY   = 4 # open read-only
 
     # * The error codes are returned by all public VIX routines.
     cdef enum:
@@ -818,97 +847,179 @@ cdef extern from "vixDiskLib.h":
 cdef void LogFunc(char *fmt, va_list args):
     cdef char buff[256]
     vsprintf(&buff[0], fmt, args);
-    buff[255] = 0
-    print "Log: %s" % buff
+    cdef int endofline = strlen(buff)
+    buff[endofline -2] = 0
+    log.debug(buff)
 
 cdef void WarnFunc(char *fmt, va_list args):
     cdef char buff[256]
     vsprintf(&buff[0], fmt, args);
     buff[255] = 0
-    print "Warning: %s" % buff
+    log.warn(buff)
 
 cdef void PanicFunc(char *fmt, va_list args):
     cdef char buff[256]
     vsprintf(&buff[0], fmt, args);
     buff[255] = 0
-    print "Panic: %s" % buff
+    log.error(buff)
 
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
-cdef class VixDiskLibBase:
-    cdef VixDiskLibConnection connection
-    cdef VixDiskLibHandle handle
-    cdef np.ndarray buffer
+VixDiskLibSectorSize = VIXDISKLIB_SECTOR_SIZE
 
-    def __cinit__(self):
+class VixDiskOpenFlags:
+    UNBUFFERED = VIXDISKLIB_FLAG_OPEN_UNBUFFERED
+    SINGLE_LINK = VIXDISKLIB_FLAG_OPEN_SINGLE_LINK
+    READ_ONLY = VIXDISKLIB_FLAG_OPEN_READ_ONLY
+
+class VDDKError(Exception):
+    pass
+
+cdef class VixDiskLib(object):
+    cdef VixDiskLibHandle handle
+    cdef np.ndarray buff
+    cdef VixDiskLibConnectParams params
+    cdef VixDiskLibConnection conn
+    cdef hostname
+    cdef username
+    cdef info
+    cdef connected
+    cdef opened
+    
+    def __init__(self, vmxSpec, hostname, username, password):
+        self.params.vmxSpec = vmxSpec
+        self.params.serverName = strdup(hostname)
+        self.params.credType = VIXDISKLIB_CRED_UID
+        self.params.creds.uid.userName = strdup(username)
+        self.params.creds.uid.password = strdup(password)
+        self.params.port = 902
+        
+        self.hostname = hostname
+        self.username = username
+        self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
+        
+        self.info = ""
+        
+        # state
+        self.connected = False
+        self.opened = False
+        
         vixError = VixDiskLib_InitEx(1, 0, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, <VixDiskLibGenericLogFunc*>&PanicFunc, NULL, NULL)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
-        self.openfile = False
-        self.buffer = np.empty(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
-        
-            
+                
     def __del__(self):
+        if self.opened:
+            self.close()
+        if self.connected:
+            self.disconnect()
         VixDiskLib_Exit()
-        
+            
     cdef _logError(self, msg, error_num):
         cdef char *error = VixDiskLib_GetErrorText(error_num, NULL)
         ex = VixDiskLibError(error)
         VixDiskLib_FreeErrorText(error)
-        self._disconnect()
         raise ex
+    
+    def connect(self, snapshotRef, readonly = False):
+        log.debug("Connecting to %s as %s" % (self.hostname, self.username))
         
-    cpdef _connect(self, vmname, hostname, username, password, snapshotRef, readonly = False):
-        cdef VixDiskLibConnectParams connectParams
-        
-        connectParams.vmxSpec = strdup(vmname)
-        connectParams.serverName = strdup(hostname)
-        connectParams.credType = VIXDISKLIB_CRED_UID
-        connectParams.creds.uid.userName = strdup(username)
-        connectParams.creds.uid.password = strdup(password)
-        connectParams.port = 902
-        
-        vixError = VixDiskLib_ConnectEx(&connectParams, readonly, snapshotRef, NULL, &(self.connection))
+        vixError = VixDiskLib_ConnectEx(&(self.params), readonly, snapshotRef, NULL, &(self.conn))
         if vixError != VIX_OK:
-            self._logError("Error connecting to %s" % hostname, vixError)
-
-    cpdef _disconnect(self):
-        VixDiskLib_Disconnect(self.connection)
-
-    cpdef _getInfo(self):
+            self._logError("Error connecting to %s" % self.params.serverName, vixError)
+        self.connected = True
+        
+    def disconnect(self):
+        log.debug("Disconnecting from %s" % self.hostname)
+        if self.connected is False:
+            raise VDDKError("Need to connect to the esx server before calling disconnect")
+        if self.opened:
+            self.close()
+        VixDiskLib_Disconnect(self.conn)
+        self.connected = False
+    
+    def open(self, path, flags=[VIXDISKLIB_FLAG_OPEN_READ_ONLY]):
+        if self.connected is False:
+            raise VDDKError("Need to connect to the esx server before calling open")
+        
+        _flag = 0
+        for flag in flags:
+            _flag |= flag
+            
+        vixError = VixDiskLib_Open(self.conn, path, _flag, &(self.handle))
+        if vixError != VIX_OK:
+            self._logError("Error opening %s" % path, vixError)
+        self.opened = True
+        
+    def getMetadata(self):
+        cdef size_t requiredLen
+        cdef np.ndarray buffer = np.ndarray(1024, dtype=np.uint8)
+        cdef np.ndarray val
+        metadata = {}
+       
+        # it will fail the first time, but will give us the required length...
+        vixError = VixDiskLib_GetMetadataKeys(self.handle, NULL, 0, &requiredLen)
+        if vixError != VIX_OK and vixError != VIX_E_BUFFER_TOOSMALL:
+            self._logError("Error getting metadata", vixError)
+            
+        vixError = VixDiskLib_GetMetadataKeys(self.handle, <char *>buffer.data, requiredLen, NULL)
+        if vixError != VIX_OK:
+            self._logError("Error getting metadata", vixError)
+        
+        cdef char *key = <char *>buffer.data
+        while key[0]:
+            vixError = VixDiskLib_ReadMetadata(self.handle, key, NULL, 0, &requiredLen);
+            if vixError != VIX_OK and vixError != VIX_E_BUFFER_TOOSMALL:
+                self._logError("Error getting metadata", vixError)
+            
+            val = np.ndarray(requiredLen, dtype=np.uint8)
+            vixError = VixDiskLib_ReadMetadata(self.handle, key, <char *>val.data, requiredLen, NULL);
+            if vixError != VIX_OK:
+                self._logError("Error getting metadata", vixError)
+            #print "%s = %s" % (key, val.tostring())
+            metadata[key] = val.tostring()[:-1]
+            key += (1 + strlen(key));
+        return metadata
+        
+    def getInfo(self):
+        if self.opened is False:
+            raise VDDKError("Need to open a disk before calling getInfo")
+        
         cdef VixDiskLibInfo *info
         vixError = VixDiskLib_GetInfo(self.handle, &info)
         if vixError != VIX_OK:
-            self._logError("Error getting info on %s" % self.diskPath, vixError)
+            self._logError("Error getting info from: %s" % self.hostname, vixError)
             
         biosGeo = {"cylinders":info.biosGeo.cylinders, "heads":info.biosGeo.heads, "sectors": info.biosGeo.sectors}
         physGeo = {"cylinders":info.physGeo.cylinders, "heads":info.physGeo.heads, "sectors": info.physGeo.sectors}
         pyinfo = { 'bios': biosGeo, 'physGeo': physGeo, 'capacity': info.capacity }
-
+    
         VixDiskLib_FreeInfo(info)
         return pyinfo
-
-    cpdef _open(self, char *path, int flags):
-        vixError = VixDiskLib_Open(self.connection, path, flags, &(self.handle))
+    
+    def getTransportModes(self):
+        modes = VixDiskLib_ListTransportModes()
+        return modes
+        
+    def read(self, start, bufsize=1):
+        bsize = bufsize * VIXDISKLIB_SECTOR_SIZE
+        if self.buff.size != bsize:
+            self.buff.resize(bsize)
+            
+        vixError = VixDiskLib_Read(self.handle, start*bufsize, bufsize, <uint8 *>self.buff.data)
         if vixError != VIX_OK:
-            self._logError("Error opening %s" % path, vixError)
-        self.openfile = True
-
-    cpdef _read(self, int start):
-        cdef uint8 *arr_buf = <uint8*>self.buffer.data
-        vixError = VixDiskLib_Read(self.handle, start, 1, arr_buf)
+            self._logError("Error reading the disk on: %s" % self.hostname, vixError)
+        return self.buff
+    
+    def close(self):
+        if self.opened is False:
+            raise VDDKError("Need to open a disk before closing it")
+        vixError = VixDiskLib_Close(self.handle)
         if vixError != VIX_OK:
-            self._logError("Error reading %s" % self.diskPath, vixError)
-        return self.buffer
-
-    cpdef _close(self):
-        if self.openfile:
-            vixError = VixDiskLib_Close(self.handle)
-            if vixError != VIX_OK:
-                self._logError("Error closing the disk", vixError)
-            self.openfile = False
-       
+            self._logError("Error closing the disk", vixError)
+        self.opened = False
+        
 # ----------------------------------------------------------------------
 # vim: set filetype=python expandtab shiftwidth=4:
 # [X]Emacs local variables declaration - place us into python mode
