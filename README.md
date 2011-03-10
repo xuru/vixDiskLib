@@ -3,6 +3,15 @@
 
   [vixDiskLib](http://xuru.github.com/vixDiskLib) is a Python wrapper to access the [VMware Virtual Disk Development Kit API](http://communities.vmware.com/community/developer/forums/vddk).
 
+## Requirements
+  Currently I'm using pkg-config in order to determine the location of libraries on the system.  This is available on linux and can be apt-get installed (or yum).
+  
+  For Ubuntu users:
+  * apt-get install pkg-config
+  * apt-get install python-dev
+  * apt-get install python-numpy
+  * apt-get install python-numpy-dev
+  
 ## Installation
   This will be uploaded to the Python Package Index when it becomes more stable, but for now you can download the code from github, then run:
   $ sudo python ./setup.py install
@@ -14,14 +23,22 @@
     Add in Change Block Tracking
     
 ## Example
-    import vddk
+    from vixDiskLib import VixDiskLib, VixDiskLibSectorSize, VixDiskOpenFlags
     
-    diskLib = vddk.VixDiskLib("vcenter.company.com", "username", "password")
-    diskLib.connect(vm.name, snapshotRef, readonly=True)
+    diskLib = VixDiskLib(vmxSpec, self.options.server, self.options.username, self.options.password)
+    diskLib.connect(snapshotRef, readonly=True)
+    diskLib.open(disk.filename)
 
-    info = self.diskLib.getInfo()
+    info = diskLib.getInfo()
+    ...
     
-    self.diskLib.copyFromVMDK(disk.filename, destination_filename)
+    metadata = diskLib.getMetadata()
+    ...
+    
+    
+    for i in range(maxops):
+        buffer = self.diskLib.read(i, bufsize)
+        ...
     
     diskLib.close()
     diskLib.disconnect()
