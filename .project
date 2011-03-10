@@ -3,6 +3,7 @@
 	<name>vixDiskLib</name>
 	<comment></comment>
 	<projects>
+		<project>pyvisdk</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
