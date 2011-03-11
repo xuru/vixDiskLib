@@ -877,20 +877,6 @@ class VixDiskOpenFlags:
 class VDDKError(Exception):
     pass
 
-default_config_location = os.path.expanduser(os.path.join('~', '.vmware', 'vix-disklib.config'))
-if not os.path.exists(default_config_location):
-    fp = open(default_config_location, 'w')
-    fp.write("tmpDirectory=/tmp")
-    fp.write('vixDiskLib.transport.LogLevel="6"')
-    fp.close()
-    
-if platform.system() == 'Linux':
-    default_libdir = '/usr/lib/vmware-vix-disklib'
-elif platform.system() == 'Windows':
-    default_libdir = 'C:\Program Files\VMware\VMware Virtual Disk Development Kit'
-else:
-    raise OSError("Unknown platform")
-
 cdef class VixDiskLib(object):
     cdef VixDiskLibHandle handle
     cdef np.ndarray buff
@@ -902,7 +888,7 @@ cdef class VixDiskLib(object):
     cdef connected
     cdef opened
     
-    def __init__(self, vmxSpec, hostname, username, password, libdir=default_libdir):
+    def __init__(self, vmxSpec, hostname, username, password, libdir=None, configdir=None):
         self.params.vmxSpec = vmxSpec
         self.params.serverName = strdup(hostname)
         self.params.credType = VIXDISKLIB_CRED_UID
@@ -921,7 +907,7 @@ cdef class VixDiskLib(object):
         self.opened = False
         
         vixError = VixDiskLib_InitEx(1, 1, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
-                <VixDiskLibGenericLogFunc*>&PanicFunc, libdir, NULL)
+                <VixDiskLibGenericLogFunc*>&PanicFunc, libdir, configdir)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
                 
