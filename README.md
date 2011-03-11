@@ -12,6 +12,11 @@
   * apt-get install python-numpy
   * apt-get install python-numpy-dev
   
+  If you find that when you try to import the module, and you get an error something like:
+  ImportError: libvixDiskLibVim.so.1: cannot open shared object file: No such file or directory
+  You need to setup your library path to point to the location of your vix-disklib directory (usually in /usr/lib/vmware-vix-disklib/lib64 or /usr/lib/vmware-vix-disklib/lib32).  To do this, execute the following command:
+  sudo ldconfig /usr/lib/vmware-vix-disklib/lib64/
+  
 ## Installation
   This will be uploaded to the Python Package Index when it becomes more stable, but for now you can download the code from github, then run:
   $ sudo python ./setup.py install
