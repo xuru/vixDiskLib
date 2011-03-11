@@ -2,6 +2,7 @@
 from exceptions import Exception
 from common cimport *
 import logging
+import os, os.path, platform
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -876,6 +877,20 @@ class VixDiskOpenFlags:
 class VDDKError(Exception):
     pass
 
+default_config_location = os.path.expanduser(os.path.join('~', '.vmware', 'vix-disklib.config'))
+if not os.path.exists(default_config_location):
+    fp = open(default_config_location, 'w')
+    fp.write("tmpDirectory=/tmp")
+    fp.write('vixDiskLib.transport.LogLevel="6"')
+    fp.close()
+    
+if platform.system() == 'Linux':
+    default_libdir = '/usr/lib/vmware-vix-disklib'
+elif platform.system() == 'Windows':
+    default_libdir = 'C:\Program Files\VMware\VMware Virtual Disk Development Kit'
+else:
+    raise OSError("Unknown platform")
+
 cdef class VixDiskLib(object):
     cdef VixDiskLibHandle handle
     cdef np.ndarray buff
@@ -887,13 +902,13 @@ cdef class VixDiskLib(object):
     cdef connected
     cdef opened
     
-    def __init__(self, vmxSpec, hostname, username, password):
+    def __init__(self, vmxSpec, hostname, username, password, libdir=default_libdir):
         self.params.vmxSpec = vmxSpec
         self.params.serverName = strdup(hostname)
         self.params.credType = VIXDISKLIB_CRED_UID
         self.params.creds.uid.userName = strdup(username)
         self.params.creds.uid.password = strdup(password)
-        self.params.port = 902
+        self.params.port = 0
         
         self.hostname = hostname
         self.username = username
@@ -905,7 +920,8 @@ cdef class VixDiskLib(object):
         self.connected = False
         self.opened = False
         
-        vixError = VixDiskLib_InitEx(1, 0, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, <VixDiskLibGenericLogFunc*>&PanicFunc, NULL, NULL)
+        vixError = VixDiskLib_InitEx(1, 1, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
+                <VixDiskLibGenericLogFunc*>&PanicFunc, libdir, NULL)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
                 
@@ -937,6 +953,9 @@ cdef class VixDiskLib(object):
         if self.opened:
             self.close()
         VixDiskLib_Disconnect(self.conn)
+        
+        cdef uint32 numCleanedUp, numRemaining
+        VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
         self.connected = False
     
     def open(self, path, flags=[VIXDISKLIB_FLAG_OPEN_READ_ONLY]):
@@ -951,6 +970,14 @@ cdef class VixDiskLib(object):
         if vixError != VIX_OK:
             self._logError("Error opening %s" % path, vixError)
         self.opened = True
+        
+    def close(self):
+        if self.opened is False:
+            raise VDDKError("Need to open a disk before closing it")
+        vixError = VixDiskLib_Close(self.handle)
+        if vixError != VIX_OK:
+            self._logError("Error closing the disk", vixError)
+        self.opened = False
         
     def getMetadata(self):
         cdef size_t requiredLen
@@ -999,8 +1026,7 @@ cdef class VixDiskLib(object):
         return pyinfo
     
     def getTransportModes(self):
-        modes = VixDiskLib_ListTransportModes()
-        return modes
+        return VixDiskLib_ListTransportModes()
         
     def read(self, start, bufsize=1):
         bsize = bufsize * VIXDISKLIB_SECTOR_SIZE
@@ -1012,14 +1038,11 @@ cdef class VixDiskLib(object):
             self._logError("Error reading the disk on: %s" % self.hostname, vixError)
         return self.buff
     
-    def close(self):
-        if self.opened is False:
-            raise VDDKError("Need to open a disk before closing it")
-        vixError = VixDiskLib_Close(self.handle)
-        if vixError != VIX_OK:
-            self._logError("Error closing the disk", vixError)
-        self.opened = False
-        
+    #def write(self, start, nsectors, np.ndarray[dtype=DTYPE] buff):
+    #    vixError = VixDiskLib_Write(self.handle, start, nsectors, <uint8 *>buff.data)
+    #    if vixError != VIX_OK:
+    #        self._logError("Error reading the disk on: %s" % self.hostname, vixError)
+   
 # ----------------------------------------------------------------------
 # vim: set filetype=python expandtab shiftwidth=4:
 # [X]Emacs local variables declaration - place us into python mode
