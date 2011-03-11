@@ -895,6 +895,8 @@ cdef class VixDiskLib(object):
         self.params.creds.uid.userName = strdup(username)
         self.params.creds.uid.password = strdup(password)
         self.params.port = 0
+        cdef char *_libdir = NULL
+        cdef char *_configdir = NULL
         
         self.hostname = hostname
         self.username = username
@@ -906,8 +908,13 @@ cdef class VixDiskLib(object):
         self.connected = False
         self.opened = False
         
+        if libdir:
+            _libdir = libdir
+        if configdir:
+            _configdir = configdir
+        
         vixError = VixDiskLib_InitEx(1, 1, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
-                <VixDiskLibGenericLogFunc*>&PanicFunc, libdir, configdir)
+                <VixDiskLibGenericLogFunc*>&PanicFunc, _libdir, _configdir)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
                 
