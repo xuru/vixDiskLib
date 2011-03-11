@@ -1011,8 +1011,11 @@ cdef class VixDiskLib(object):
         VixDiskLib_FreeInfo(info)
         return pyinfo
     
-    def getTransportModes(self):
+    def getTransportModesAvailable(self):
         return VixDiskLib_ListTransportModes()
+        
+    def getTransportMode(self):
+        return VixDiskLib_GetTransportMode(self.handle)
         
     def read(self, start, bufsize=1):
         bsize = bufsize * VIXDISKLIB_SECTOR_SIZE
