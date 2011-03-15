@@ -5,7 +5,7 @@ import logging
 import os, os.path, platform
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG)
 
 import numpy as np
 # "cimport" is used to import special compile-time information
@@ -888,30 +888,45 @@ cdef class VixDiskLib(object):
     cdef connected
     cdef opened
     
-    def __init__(self, vmxSpec, hostname, username, password):
+    def __init__(self, vmxSpec, hostname, username, password, libdir=None, conf=None):
+        log.debug("Initializing vixDiskLib")
         self.params.vmxSpec = vmxSpec
         self.params.serverName = strdup(hostname)
         self.params.credType = VIXDISKLIB_CRED_UID
         self.params.creds.uid.userName = strdup(username)
         self.params.creds.uid.password = strdup(password)
-        self.params.port = 0
         
+        self.params.port = 0
+        self.info = ""
         self.hostname = hostname
         self.username = username
         self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
-        
-        self.info = ""
         
         # state
         self.connected = False
         self.opened = False
         
+        cdef char *_libdir
+        if libdir:
+            _libdir = strdup(libdir)
+            log.debug("  Using libdir: %s" % libdir)
+        else:
+            _libdir = NULL
+            
+        cdef char *_conf
+        if conf:
+            _conf = strdup(conf)
+            log.debug("  Using config: %s" % conf)
+        else:
+            _conf = NULL
+        
         vixError = VixDiskLib_InitEx(1, 1, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
-                <VixDiskLibGenericLogFunc*>&PanicFunc, NULL, NULL)
+                <VixDiskLibGenericLogFunc*>&PanicFunc, _libdir, _conf)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
                 
     def __del__(self):
+        log.debug("Closing any open connections and exiting")
         if self.opened:
             self.close()
         if self.connected:
@@ -924,10 +939,16 @@ cdef class VixDiskLib(object):
         VixDiskLib_FreeErrorText(error)
         raise ex
     
-    def connect(self, snapshotRef, readonly = False):
+    def connect(self, snapshotRef, transport=None, readonly=True):
         log.debug("Connecting to %s as %s" % (self.hostname, self.username))
+
+        cdef char *_transport
+        if transport:
+            _transport = strdup(transport)
+        else:
+            _transport = NULL
         
-        vixError = VixDiskLib_ConnectEx(&(self.params), readonly, snapshotRef, NULL, &(self.conn))
+        vixError = VixDiskLib_ConnectEx(&(self.params), readonly, snapshotRef, _transport, &(self.conn))
         if vixError != VIX_OK:
             self._logError("Error connecting to %s" % self.params.serverName, vixError)
         self.connected = True
@@ -944,7 +965,7 @@ cdef class VixDiskLib(object):
         VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
         self.connected = False
     
-    def open(self, path, flags=[VIXDISKLIB_FLAG_OPEN_READ_ONLY]):
+    def open(self, path, flags=[]):
         if self.connected is False:
             raise VDDKError("Need to connect to the esx server before calling open")
         
@@ -952,12 +973,14 @@ cdef class VixDiskLib(object):
         for flag in flags:
             _flag |= flag
             
+        log.debug("Opening drive: [flags: %d] %s" % (_flag, path))
         vixError = VixDiskLib_Open(self.conn, path, _flag, &(self.handle))
         if vixError != VIX_OK:
             self._logError("Error opening %s" % path, vixError)
         self.opened = True
         
     def close(self):
+        log.debug("Closing drive...")
         if self.opened is False:
             raise VDDKError("Need to open a disk before closing it")
         vixError = VixDiskLib_Close(self.handle)
@@ -966,6 +989,7 @@ cdef class VixDiskLib(object):
         self.opened = False
         
     def getMetadata(self):
+        log.debug("Getting metadata for the disk")
         cdef size_t requiredLen
         cdef np.ndarray buffer = np.ndarray(1024, dtype=np.uint8)
         cdef np.ndarray val
@@ -996,6 +1020,7 @@ cdef class VixDiskLib(object):
         return metadata
         
     def getInfo(self):
+        log.debug("Getting info for the disk")
         if self.opened is False:
             raise VDDKError("Need to open a disk before calling getInfo")
         
