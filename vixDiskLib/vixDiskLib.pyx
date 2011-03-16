@@ -845,24 +845,20 @@ cdef extern from "vixDiskLib.h":
     void VixDiskLib_FreeConnectParams(VixDiskLibConnectParams* connectParams)
 
 # Add some default callbacks (from the sample application in the VDDK)
-cdef void LogFunc(char *fmt, va_list args):
-    cdef char buff[256]
-    vsprintf(&buff[0], fmt, args);
-    cdef int endofline = strlen(buff)
-    buff[endofline -2] = 0
-    log.debug(buff)
+cdef void LogFunc(char *format, va_list args):
+    cdef char buffer[1000]
+    PyOS_vsnprintf(buffer, 1000, format, args)
+    log.debug(buffer)
 
-cdef void WarnFunc(char *fmt, va_list args):
-    cdef char buff[256]
-    vsprintf(&buff[0], fmt, args);
-    buff[255] = 0
-    log.warn(buff)
+cdef void WarnFunc(char *format, va_list args):
+    cdef char buffer[1000]
+    PyOS_vsnprintf(buffer, 1000, format, args)
+    log.warn(buffer)
 
-cdef void PanicFunc(char *fmt, va_list args):
-    cdef char buff[256]
-    vsprintf(&buff[0], fmt, args);
-    buff[255] = 0
-    log.error(buff)
+cdef void PanicFunc(char *format, va_list args):
+    cdef char buffer[1000]
+    PyOS_vsnprintf(buffer, 1000, format, args)
+    log.error(buffer)
 
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
@@ -935,7 +931,9 @@ cdef class VixDiskLib(object):
             
     cdef _logError(self, msg, error_num):
         cdef char *error = VixDiskLib_GetErrorText(error_num, NULL)
-        ex = VixDiskLibError("[%d] " % error_num + error)
+        out = "[%d] " % error_num
+        out += error
+        ex = VixDiskLibError(out)
         VixDiskLib_FreeErrorText(error)
         raise ex
     

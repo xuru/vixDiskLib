@@ -68,8 +68,11 @@ cdef extern from "Python.h":
     # just take advantage of the fact that the following seems to work for
     # our purposes...
     ctypedef void * va_list
+    
+    # Output not more than size bytes to str according to the format string
+    # format and the variable argument list va. Unix man page vsnprintf(2).
+    int PyOS_vsnprintf(char *str, int size, const_char_ptr format, va_list va)
 
-cdef extern from "Python.h":
     FILE *PySys_GetFile(char *name, FILE *default)
     
 cdef extern from "stdio.h":
