@@ -920,7 +920,7 @@ cdef class VixDiskLib(object):
         else:
             _conf = NULL
         
-        vixError = VixDiskLib_InitEx(1, 1, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
+        vixError = VixDiskLib_InitEx(1, 2, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
                 <VixDiskLibGenericLogFunc*>&PanicFunc, _libdir, _conf)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
@@ -935,7 +935,7 @@ cdef class VixDiskLib(object):
             
     cdef _logError(self, msg, error_num):
         cdef char *error = VixDiskLib_GetErrorText(error_num, NULL)
-        ex = VixDiskLibError(error)
+        ex = VixDiskLibError("[%d] " % error_num + error)
         VixDiskLib_FreeErrorText(error)
         raise ex
     
@@ -947,6 +947,10 @@ cdef class VixDiskLib(object):
             _transport = strdup(transport)
         else:
             _transport = NULL
+
+        # let's do a clean up just in case we had a bad run last time...
+        cdef uint32 numCleanedUp, numRemaining
+        VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
         
         vixError = VixDiskLib_ConnectEx(&(self.params), readonly, snapshotRef, _transport, &(self.conn))
         if vixError != VIX_OK:
