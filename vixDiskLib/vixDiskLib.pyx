@@ -864,7 +864,15 @@ DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
 VixDiskLibSectorSize = VIXDISKLIB_SECTOR_SIZE
+cdef int VIXDISKLIB_VERSION_MAJOR = 1
+cdef int VIXDISKLIB_VERSION_MINOR = 2
 
+class VixCredentials(object):
+    def __init__(self, host, username, password):
+        self.host = host
+        self.username = username
+        self.password = password
+    
 class VixDiskOpenFlags:
     UNBUFFERED = VIXDISKLIB_FLAG_OPEN_UNBUFFERED
     SINGLE_LINK = VIXDISKLIB_FLAG_OPEN_SINGLE_LINK
@@ -884,18 +892,19 @@ cdef class VixDiskLib(object):
     cdef connected
     cdef opened
     
-    def __init__(self, vmxSpec, hostname, username, password, libdir=None, conf=None):
+    def __init__(self, vmxSpec, params, libdir=None, conf=None):
         log.debug("Initializing vixDiskLib")
+        if not vmxSpec.startswith("moref="):
+            vmxSpec = "moref=" + vmxSpec
         self.params.vmxSpec = vmxSpec
-        self.params.serverName = strdup(hostname)
+        self.params.serverName = strdup(params.host)
         self.params.credType = VIXDISKLIB_CRED_UID
-        self.params.creds.uid.userName = strdup(username)
-        self.params.creds.uid.password = strdup(password)
-        
+        self.params.creds.uid.userName = strdup(params.username)
+        self.params.creds.uid.password = strdup(params.password)
         self.params.port = 0
+        
         self.info = ""
-        self.hostname = hostname
-        self.username = username
+        self.cred = params
         self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
         
         # state
@@ -916,7 +925,8 @@ cdef class VixDiskLib(object):
         else:
             _conf = NULL
         
-        vixError = VixDiskLib_InitEx(1, 2, <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
+        vixError = VixDiskLib_InitEx(VIXDISKLIB_VERSION_MAJOR, VIXDISKLIB_VERSION_MINOR, 
+                <VixDiskLibGenericLogFunc*>&LogFunc, <VixDiskLibGenericLogFunc*>&WarnFunc, 
                 <VixDiskLibGenericLogFunc*>&PanicFunc, _libdir, _conf)
         if vixError != VIX_OK:
             self._logError("Error initializing the vixDiskLib library", vixError)
@@ -938,7 +948,7 @@ cdef class VixDiskLib(object):
         raise ex
     
     def connect(self, snapshotRef, transport=None, readonly=True):
-        log.debug("Connecting to %s as %s" % (self.hostname, self.username))
+        log.debug("Connecting to %s as %s" % (self.cred.host, self.cred.username))
 
         cdef char *_transport
         if transport:
@@ -956,7 +966,7 @@ cdef class VixDiskLib(object):
         self.connected = True
         
     def disconnect(self):
-        log.debug("Disconnecting from %s" % self.hostname)
+        log.debug("Disconnecting from %s" % self.cred.host)
         if self.connected is False:
             raise VDDKError("Need to connect to the esx server before calling disconnect")
         if self.opened:
@@ -1029,7 +1039,7 @@ cdef class VixDiskLib(object):
         cdef VixDiskLibInfo *info
         vixError = VixDiskLib_GetInfo(self.handle, &info)
         if vixError != VIX_OK:
-            self._logError("Error getting info from: %s" % self.hostname, vixError)
+            self._logError("Error getting info from: %s" % self.cred.host, vixError)
             
         biosGeo = {"cylinders":info.biosGeo.cylinders, "heads":info.biosGeo.heads, "sectors": info.biosGeo.sectors}
         physGeo = {"cylinders":info.physGeo.cylinders, "heads":info.physGeo.heads, "sectors": info.physGeo.sectors}
@@ -1051,13 +1061,13 @@ cdef class VixDiskLib(object):
             
         vixError = VixDiskLib_Read(self.handle, start*bufsize, bufsize, <uint8 *>self.buff.data)
         if vixError != VIX_OK:
-            self._logError("Error reading the disk on: %s" % self.hostname, vixError)
+            self._logError("Error reading the disk on: %s" % self.cred.host, vixError)
         return self.buff
     
     #def write(self, start, nsectors, np.ndarray[dtype=DTYPE] buff):
     #    vixError = VixDiskLib_Write(self.handle, start, nsectors, <uint8 *>buff.data)
     #    if vixError != VIX_OK:
-    #        self._logError("Error reading the disk on: %s" % self.hostname, vixError)
+    #        self._logError("Error reading the disk on: %s" % self.cred.host, vixError)
    
 # ----------------------------------------------------------------------
 # vim: set filetype=python expandtab shiftwidth=4:
