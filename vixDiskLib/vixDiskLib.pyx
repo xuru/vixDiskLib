@@ -891,6 +891,7 @@ cdef class VixDiskLib(object):
     cdef info
     cdef connected
     cdef opened
+    cdef cred
     
     def __init__(self, vmxSpec, params, libdir=None, conf=None):
         log.debug("Initializing vixDiskLib")
