@@ -892,6 +892,7 @@ cdef class VixDiskLib(object):
     cdef connected
     cdef opened
     cdef cred
+    cdef ro
     
     def __init__(self, vmxSpec, params, libdir=None, conf=None):
         log.debug("Initializing vixDiskLib")
@@ -904,6 +905,7 @@ cdef class VixDiskLib(object):
         self.params.creds.uid.password = strdup(params.password)
         self.params.port = 0
         
+        self.ro = False
         self.info = ""
         self.cred = params
         self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
@@ -950,6 +952,7 @@ cdef class VixDiskLib(object):
     
     def connect(self, snapshotRef, transport=None, readonly=True):
         log.debug("Connecting to %s as %s" % (self.cred.host, self.cred.username))
+        self.ro = readonly
 
         cdef char *_transport
         if transport:
@@ -961,7 +964,7 @@ cdef class VixDiskLib(object):
         cdef uint32 numCleanedUp, numRemaining
         VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
         
-        vixError = VixDiskLib_ConnectEx(&(self.params), readonly, snapshotRef, _transport, &(self.conn))
+        vixError = VixDiskLib_ConnectEx(&(self.params), self.ro, snapshotRef, _transport, &(self.conn))
         if vixError != VIX_OK:
             self._logError("Error connecting to %s" % self.params.serverName, vixError)
         self.connected = True
@@ -978,13 +981,16 @@ cdef class VixDiskLib(object):
         VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
         self.connected = False
     
-    def open(self, path, flags=[]):
+    def open(self, path, single=False):
         if self.connected is False:
             raise VDDKError("Need to connect to the esx server before calling open")
         
-        _flag = 0
-        for flag in flags:
-            _flag |= flag
+        if self.ro:
+            _flag = VIXDISKLIB_FLAG_OPEN_READ_ONLY
+        else:
+            _flag = VIXDISKLIB_FLAG_OPEN_UNBUFFERED
+            if single:
+                _flag |= VIXDISKLIB_FLAG_OPEN_SINGLE_LINK
             
         log.debug("Opening drive: [flags: %d] %s" % (_flag, path))
         vixError = VixDiskLib_Open(self.conn, path, _flag, &(self.handle))
