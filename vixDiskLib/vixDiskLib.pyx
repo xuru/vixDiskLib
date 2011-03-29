@@ -4,6 +4,11 @@ import logging
 
 from common cimport *
 from vixDiskLib_headers cimport *
+import numpy as np
+# "cimport" is used to import special compile-time information
+# about the numpy module (this is stored in a file numpy.pxd which is
+# currently part of the Cython distribution).
+cimport numpy as np
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -66,11 +71,6 @@ cdef class VixDiskLib(object):
     cdef np.ndarray buff
     cdef VixDiskLibConnectParams params
     cdef VixDiskLibConnection conn
-    
-    cdef char vmxspec[128]
-    cdef char hostname[128]
-    cdef char username[128]
-    cdef char password[128]
     
     cdef info
     cdef connected
