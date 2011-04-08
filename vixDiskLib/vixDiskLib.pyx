@@ -20,17 +20,17 @@ class VixDiskLibError(Exception):
 cdef void LogFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.debug(buffer)
+    log.debug(buffer.strip())
 
 cdef void WarnFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.warn(buffer)
+    log.warn(buffer.strip())
 
 cdef void PanicFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.error(buffer)
+    log.error(buffer.strip())
     
 cdef bint progressCallback(void *data, int percentComplete): 
     cdef char buffer[1000]
