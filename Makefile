@@ -14,6 +14,9 @@ build:
 debug:
 	PYTHONPATH=. $(PYTHON) setup.py $(SETUPFLAGS) build_ext --pyrex-gdb --inplace
 
+install:
+	$(PYTHON) setup.py $(SETUPFLAGS) install
+
 test:
 	PYTHONPATH=. $(PYTHON) $(TESTRUNNER) test
 
