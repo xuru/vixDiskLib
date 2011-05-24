@@ -23,7 +23,7 @@ cdef void LogFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
     if logging_callback:
-        logging_callback(logging.INFO, buffer.strip()))
+        logging_callback(logging.INFO, buffer.strip())
     else:
         log.debug(buffer.strip())
 
@@ -31,7 +31,7 @@ cdef void WarnFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
     if logging_callback:
-        logging_callback(logging.WARN, buffer.strip()))
+        logging_callback(logging.WARN, buffer.strip())
     else:
         log.warn(buffer.strip())
 
@@ -39,7 +39,7 @@ cdef void PanicFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
     if logging_callback:
-        logging_callback(logging.CRITICAL, buffer.strip()))
+        logging_callback(logging.CRITICAL, buffer.strip())
     else:
         log.error(buffer.strip())
     
