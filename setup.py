@@ -28,7 +28,6 @@ vixDiskLib - python wrapper for vixDiskLib (in C)
 from distutils.core import setup
 from Cython.Distutils import extension, build_ext
 import subprocess, os, time
-import vixDiskLib
 from glob import glob
 
 #################################################################################
@@ -82,7 +81,7 @@ setup( name = 'vixDiskLib',
     long_description = "vSphere SDK for Python",
     author = "Eric Plaster",
     author_email = "plaster at gmail.com",
-    version = vixDiskLib.__version__,
+    version = open("VERSION").read(),
     url = "https://github.com/xuru/vixDiskLib",
     license = "MIT",
     cmdclass = {'build_ext': build_ext},
