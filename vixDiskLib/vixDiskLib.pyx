@@ -13,6 +13,8 @@ cimport numpy as np
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+logging_callback = None
+
 class VixDiskLibError(Exception):
     pass
 
@@ -20,17 +22,26 @@ class VixDiskLibError(Exception):
 cdef void LogFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.debug(buffer.strip())
+    if logging_callback:
+        logging_callback(logging.INFO, buffer.strip()))
+    else:
+        log.debug(buffer.strip())
 
 cdef void WarnFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.warn(buffer.strip())
+    if logging_callback:
+        logging_callback(logging.WARN, buffer.strip()))
+    else:
+        log.warn(buffer.strip())
 
 cdef void PanicFunc(char *format, va_list args):
     cdef char buffer[1000]
     PyOS_vsnprintf(buffer, 1000, format, args)
-    log.error(buffer.strip())
+    if logging_callback:
+        logging_callback(logging.CRITICAL, buffer.strip()))
+    else:
+        log.error(buffer.strip())
     
 cdef bint progressCallback(void *data, int percentComplete): 
     cdef char buffer[1000]
@@ -81,8 +92,11 @@ cdef class VixDiskLib(object):
     cdef char *config
     cdef vmdk_path
     
-    def __init__(self, vmxSpec, params, libdir=None, conf=None):
+    def __init__(self, vmxSpec, params, libdir=None, conf=None, callback=None):
         log.debug("Initializing vixDiskLib")
+        
+        global logging_callback
+        logging_callback = callback
         
         if not vmxSpec.startswith("moref="):
             vmxSpec = "moref=" + vmxSpec
