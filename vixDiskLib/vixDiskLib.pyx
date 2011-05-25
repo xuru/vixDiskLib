@@ -24,7 +24,7 @@ cdef void LogFunc(char *format, va_list args):
     #if logging_callback:
     #    logging_callback(logging.INFO, buffer.strip() + "\n")
     #else:
-    log.debug(buffer.strip())
+    #log.debug(buffer.strip())
 
 cdef void WarnFunc(char *format, va_list args):
     cdef char buffer[1000]
@@ -32,7 +32,7 @@ cdef void WarnFunc(char *format, va_list args):
     #if logging_callback:
     #    logging_callback(logging.WARN, buffer.strip() + "\n")
     #else:
-    log.warn(buffer.strip())
+    #log.warn(buffer.strip())
 
 cdef void PanicFunc(char *format, va_list args):
     cdef char buffer[1000]
@@ -40,7 +40,7 @@ cdef void PanicFunc(char *format, va_list args):
     #if logging_callback:
     #    logging_callback(logging.CRITICAL, buffer.strip() + "\n")
     #else:
-    log.error(buffer.strip())
+    #log.error(buffer.strip())
     
 cdef bint progressCallback(void *data, int percentComplete): 
     cdef char buffer[1000]
