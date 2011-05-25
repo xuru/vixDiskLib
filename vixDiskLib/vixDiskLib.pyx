@@ -11,7 +11,6 @@ import numpy as np
 cimport numpy as np
 
 log = logging.getLogger(__name__)
-log.addHandler(NullHandler)
 
 logging_callback = None
 
