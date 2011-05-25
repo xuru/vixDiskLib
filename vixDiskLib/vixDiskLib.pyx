@@ -1,10 +1,6 @@
 
 from exceptions import Exception
 import logging
-try:
-    from logging import NullHandler
-except ImportError:
-    from logutils import NullHandler
 
 from common cimport *
 from vixDiskLib_headers cimport *
