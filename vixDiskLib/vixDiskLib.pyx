@@ -1,6 +1,10 @@
 
 from exceptions import Exception
 import logging
+try:
+    from logging import NullHandler
+except ImportError:
+    from logutils import NullHandler
 
 from common cimport *
 from vixDiskLib_headers cimport *
@@ -11,7 +15,7 @@ import numpy as np
 cimport numpy as np
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log.addHandler(NullHandler)
 
 logging_callback = None
 
