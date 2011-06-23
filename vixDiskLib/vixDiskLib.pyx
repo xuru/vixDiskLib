@@ -53,13 +53,15 @@ cdef bint progressCallback(void *data, int percentComplete):
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
-VixDiskLibSectorSize = VIXDISKLIB_SECTOR_SIZE
 cdef int DEFAULT_BLOCK_SIZE = 1048576 # 1MB
-
 cdef uint32 SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE/VIXDISKLIB_SECTOR_SIZE
-
 cdef int VIXDISKLIB_VERSION_MAJOR = 1
 cdef int VIXDISKLIB_VERSION_MINOR = 2
+
+# expose some of these to python
+VixDiskLib_SectorSize = VIXDISKLIB_SECTOR_SIZE
+VixDiskLib_DefaultBlockSize = DEFAULT_BLOCK_SIZE 
+VixDiskLib_SectorsPerBlock = SECTORS_PER_BLOCK 
 
 class VixCredentials(object):
     def __init__(self, host, username, password):
