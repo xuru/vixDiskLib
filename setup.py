@@ -70,7 +70,6 @@ def pkgconfig(*packages, **kw):
 kw = pkgconfig('vix-disklib')
 # we need to make sure that we include the vixDiskLibVim library
 kw['libraries'].append('vixDiskLibVim')
-kw['language'] = 'c++'
 vddk_module = extension.Extension('vixDiskLib.vixDiskLib', ['vixDiskLib/vixDiskLib.pyx'], **kw)
 
 # we need to make sure we have these to python modules in our path
