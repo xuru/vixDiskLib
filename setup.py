@@ -70,23 +70,25 @@ def pkgconfig(*packages, **kw):
 kw = pkgconfig('vix-disklib')
 # we need to make sure that we include the vixDiskLibVim library
 kw['libraries'].append('vixDiskLibVim')
-print "kw: ", kw
 vddk_module = extension.Extension('vixDiskLib.vixDiskLib', ['vixDiskLib/vixDiskLib.pyx'], **kw)
 
 # we need to make sure we have these to python modules in our path
 install_requires = ["cython"]
 
-setup( name = 'vixDiskLib',
+setup( 
+    name = 'vixDiskLib',
+    version = open("VERSION").read(),
     description = "vixDiskLib wrapper in Python",
-    long_description = "vSphere SDK for Python",
     author = "Eric Plaster",
     author_email = "plaster at gmail.com",
-    version = open("VERSION").read(),
+    long_description = "vSphere SDK for Python",
     url = "https://github.com/xuru/vixDiskLib",
+    platforms=["any"],
+    zip_safe=False,
     license = "MIT",
     cmdclass = {'build_ext': build_ext},
     ext_modules = [vddk_module],
-    requires = install_requires,
+    install_requires = install_requires,
     packages = ["vixDiskLib"],
     classifiers = ['Development Status :: 4 - Beta',
                    'Framework :: VMWare',
