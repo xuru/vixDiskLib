@@ -74,6 +74,11 @@ cdef extern from "Python.h":
     int PyOS_vsnprintf(char *str, int size, const_char_ptr format, va_list va)
 
     FILE *PySys_GetFile(char *name, FILE *default)
+    int PyString_Size(object s)
+    
+    char* PyString_AsString(object)
+    object PyString_FromString(char *s)
+    
     
 cdef extern from "stdio.h":
     int printf (char * format, ... )
