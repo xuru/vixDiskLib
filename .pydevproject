@@ -5,8 +5,8 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python</pydev_property>
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.7</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
-<path>/vixDiskLib/vixDiskLib</path>
 <path>/vixDiskLib/build/lib.linux-x86_64-2.6</path>
+<path>/vixDiskLib</path>
 </pydev_pathproperty>
 <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
 <path>/home/eplaster/src/pyvisdk</path>
