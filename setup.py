@@ -27,8 +27,11 @@ vixDiskLib - python wrapper for vixDiskLib (in C)
 
 from distutils.core import setup
 from Cython.Distutils import extension, build_ext
-import subprocess, os, time
-from glob import glob
+import subprocess, os, time, sys
+import os.path
+
+# make sure when we import vixDiskLib that it's the one in the current directory
+sys.path.insert(0, os.path.abspath(__file__))
 
 #################################################################################
 # Helper functions for setup
@@ -58,11 +61,11 @@ def run_pkg_config(packages):
     args = ['pkg-config', '--libs', '--cflags'] + list(packages)
     return run(args)
 
-def pkgconfig(*packages, **kw):
+def pkgconfig(*packages, **kwargs):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
     for token in run_pkg_config(packages).split():
-        kw.setdefault(flag_map.get(token[:2]), []).append(token[2:])
-    return kw
+        kwargs.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+    return kwargs
 
 #################################################################################
 # Setup the libraries and include paths for vixDiskLib (VDDK)
@@ -70,14 +73,19 @@ def pkgconfig(*packages, **kw):
 kw = pkgconfig('vix-disklib')
 # we need to make sure that we include the vixDiskLibVim library
 kw['libraries'].append('vixDiskLibVim')
-vddk_module = extension.Extension('vixDiskLib.vixDiskLib', ['vixDiskLib/vixDiskLib.pyx'], **kw)
+kw['include_dirs'].append('vixDiskLib')
+print kw
+ext_modules = [
+    extension.Extension('vixDiskLib.vixBase', ['vixDiskLib/vixBase.pyx'], **kw), #IGNORE:W0142
+    extension.Extension('vixDiskLib.vixDiskBase', ['vixDiskLib/vixDiskBase.pyx'], **kw), #IGNORE:W0142
+]
 
 # we need to make sure we have these to python modules in our path
 install_requires = ["cython"]
 
 setup( 
     name = 'vixDiskLib',
-    version = open("VERSION").read(),
+    version = open('VERSION').read(),
     description = "vixDiskLib wrapper in Python",
     author = "Eric Plaster",
     author_email = "plaster at gmail.com",
@@ -87,7 +95,7 @@ setup(
     zip_safe=False,
     license = "MIT",
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [vddk_module],
+    ext_modules = ext_modules,
     install_requires = install_requires,
     packages = ["vixDiskLib"],
     classifiers = ['Development Status :: 4 - Beta',
