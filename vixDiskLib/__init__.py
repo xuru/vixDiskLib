@@ -35,9 +35,7 @@ __author__ = "Eric Plaster"
 __all__ = [
     'VixDiskLib_SectorSize', 'VixDiskLib_DefaultBlockSize', 'VixDiskLib_SectorsPerBlock',
     'VixDiskOpenFlags', 'VixDiskLibError', 'VixDiskUnimplemented',
-    'VixCredentials', 'vixDisk', '',
-    '', '', '',
-    '', '', '',
+    'VixCredentials', 'VixDisk',
 ]
 
 from vixDiskBase import VixDiskBase, VixDiskLib_SectorSize, VixDiskLib_DefaultBlockSize, VixDiskLib_SectorsPerBlock
