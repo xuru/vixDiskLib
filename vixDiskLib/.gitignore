@@ -1,3 +1,5 @@
 /vixDiskLib.so
 /vixBase.c
 /vixDiskBase.c
+/vixDiskBase.so
+/vixBase.so
