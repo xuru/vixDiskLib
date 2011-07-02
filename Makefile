@@ -22,6 +22,7 @@ test:
 
 clean:
 	-find . \( -name '*.o' -o -name '*.so' -o -name '*.py[cod]' -o -name '*.dll' \) -exec rm -f {} \;
+	-rm vixDiskLib/*.c
 	-rm -rf build dist
 	-rm -rf api_docs/
 
