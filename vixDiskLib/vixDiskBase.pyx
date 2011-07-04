@@ -41,7 +41,8 @@ cdef class VixDiskBase(VixBase):
         self.vmdk_path = None
         self.opened = False
         self._transport_mode = None
-
+        self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
+        
     def _getTransportMode(self):
         return self._transport_mode
     transport_mode = property(_getTransportMode)
