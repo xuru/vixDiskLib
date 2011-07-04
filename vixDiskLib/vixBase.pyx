@@ -30,7 +30,7 @@ cdef class VixBase(object):
         requires a vmspec to connect.
         """
         self.connected = False
-        self.read_only = False
+        self._read_only = False
         self.cred = credentials # save for log output
         
         if not vmxSpec.startswith("moref="):
@@ -44,13 +44,13 @@ cdef class VixBase(object):
         self.params.creds.uid.password  = strdup(PyString_AsString(credentials.password))
         self.params.port                = 0
         
-        libdir = None
+        self._libdir = None
         if libdir:
-            self.libdir = libdir
+            self._libdir = libdir
             
-        self.config = None
+        self._config = None
         if config:
-            self.config = config
+            self._config = config
     
     cdef _handleError(self, msg, int error_num):
         """
@@ -83,8 +83,8 @@ cdef class VixBase(object):
                 <VixDiskLibGenericLogFunc*>&LogFunc, 
                 <VixDiskLibGenericLogFunc*>&LogFunc, 
                 <VixDiskLibGenericLogFunc*>&LogFunc, 
-                PyString_AsString(self.libdir), 
-                PyString_AsString(self.config))
+                PyString_AsString(self._libdir), 
+                PyString_AsString(self._config))
         
         if vix_error != VIX_OK:
             self._handleError("Error initializing the vixDiskLib library", vix_error)
@@ -119,14 +119,14 @@ cdef class VixBase(object):
         if self.connected:
             raise VixDiskLibError("Already Connected, and trying to connect...")
         
-        self.read_only = readonly
+        self._read_only = readonly
         self.initialize()
 
         _transport = NULL
         if transport:
             _transport = PyString_AsString(transport)
         
-        vix_error = VixDiskLib_ConnectEx(&(self.params), self.read_only, snapshotRef, _transport, &(self.conn))
+        vix_error = VixDiskLib_ConnectEx(&(self.params), self._read_only, snapshotRef, _transport, &(self.conn))
         if vix_error != VIX_OK:
             self._handleError("Error connecting to %s" % self.params.serverName, vix_error)
             
@@ -149,22 +149,22 @@ cdef class VixBase(object):
     # Properties    
     ################################################################################
     def _getconfig(self):
-        return self.config
+        return self._config
     
     def _setconfig(self, path):
-        self.config = path
+        self._config = path
                 
     def _getlibdir(self):
-        return self.libdir
+        return self._libdir
     
     def _setlibdir(self, path):
-        self.libdir = path
+        self._libdir = path
                 
     def _getreadonly(self):
-        return self.read_only
+        return self._read_only
     
     def _setreadonly(self, truth):
-        self.read_only = truth
+        self._read_only = truth
                 
     readonly = property(_getreadonly, _setreadonly,
                 doc="The read only flag upon connection.")
