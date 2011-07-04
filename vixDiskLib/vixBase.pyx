@@ -24,8 +24,6 @@ cdef void LogFunc(char *format, va_list args):
     log.debug(out)
 
 cdef class VixBase(object):
-    cdef VixDiskLibConnectParams params
-    cdef VixDiskLibConnection conn
     
     def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
         """
@@ -54,6 +52,8 @@ cdef class VixBase(object):
         self._config = None
         if config:
             self._config = config
+            
+        self.initialize()
     
     cdef _handleError(self, msg, int error_num):
         """
