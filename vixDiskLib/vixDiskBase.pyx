@@ -64,7 +64,7 @@ cdef class VixDiskBase(VixBase):
         if self.opened:
             raise VixDiskLibError("Currently have disk %s opened.  Can not open another drive until this one is closed." % self.vmdk_path)
         
-        if self.read_only:
+        if self.readonly:
             _flag = VIXDISKLIB_FLAG_OPEN_READ_ONLY
         else:
             _flag = VIXDISKLIB_FLAG_OPEN_UNBUFFERED
