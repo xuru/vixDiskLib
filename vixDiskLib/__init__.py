@@ -56,6 +56,9 @@ class VixCredentials(object):
 class VixDisk(VixDiskBase):
     """ A file IO interface to the vixDiskLib SDK """
     
+    def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
+        VixDiskBase.__init__(vmxSpec, credentials, libdir, config, callback)
+
     def iter(self, nblocks=1):
         if not self.open:
             raise VixDiskLibError("Disk must be open to use the generator method")
