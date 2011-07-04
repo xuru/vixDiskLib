@@ -24,6 +24,9 @@ cdef void LogFunc(char *format, va_list args):
     log.debug(out)
 
 cdef class VixBase(object):
+    cdef VixDiskLibConnectParams params
+    cdef VixDiskLibConnection conn
+    
     def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
         """
         vixBase - Setup, and connect to the vcenter or ESX server.  Note: vix-disklib 
