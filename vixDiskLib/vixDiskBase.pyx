@@ -2,31 +2,33 @@
 import logging
 from vixExceptions import VixDiskLibError, VixDiskUnimplemented
 
-# "cimport" is used to import special compile-time information
-# about the numpy module (this is stored in a file numpy.pxd which is
-# currently part of the Cython distribution).
-cimport numpy as np
-import numpy as np
-
 from common cimport *
 from vddk cimport *
 
 cimport vixBase
 from vixBase cimport *
 
-log = logging.getLogger("vixDiskLib.vixDisk")
+log = logging.getLogger("vixDiskLib.vixDiskBase")
 
 # define our byte type for numpy
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
-cdef int DEFAULT_BLOCK_SIZE = 1048576 # 1MB
-cdef uint32 SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE/VIXDISKLIB_SECTOR_SIZE
+cdef int DEFAULT_BLOCK_SIZE     = 1048576 # 1MB
+cdef uint32 SECTORS_PER_BLOCK   = DEFAULT_BLOCK_SIZE/VIXDISKLIB_SECTOR_SIZE
+
+cdef unsigned short TRUE = 1
+cdef unsigned short FALSE = 0
+
+cdef truth(value):
+    if value:
+        return TRUE
+    return FALSE
 
 # expose some of these to python
-VixDiskLib_SectorSize = VIXDISKLIB_SECTOR_SIZE
-VixDiskLib_DefaultBlockSize = DEFAULT_BLOCK_SIZE 
-VixDiskLib_SectorsPerBlock = SECTORS_PER_BLOCK 
+VixDiskLib_SectorSize           = VIXDISKLIB_SECTOR_SIZE
+VixDiskLib_DefaultBlockSize     = DEFAULT_BLOCK_SIZE 
+VixDiskLib_SectorsPerBlock      = SECTORS_PER_BLOCK 
 
 
 cdef class VixDiskBase(VixBase):
@@ -34,6 +36,8 @@ cdef class VixDiskBase(VixBase):
     
     cdef VixDiskLibHandle handle
     cdef np.ndarray buff
+    
+    cdef VixDiskLibCreateParams create_params
     
     def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
         super(VixDiskBase, self).__init__(vmxSpec, credentials, libdir, config, callback)
@@ -196,6 +200,9 @@ cdef class VixDiskBase(VixBase):
         log.debug("Getting metadata for the disk")
         metadata = {}
         
+        if not self.connected:
+            raise VixDiskLibError("Currently not connected, and trying to open vmdk")
+        
         cdef size_t requiredLen
         cdef np.ndarray buffer = np.ndarray(1024, dtype=np.uint8)
         cdef np.ndarray val
@@ -228,53 +235,87 @@ cdef class VixDiskBase(VixBase):
         """
         Writes the metadata to the drive.
         """
-        raise VixDiskUnimplemented("setMetadata is currently unimplemented")
+        log.debug("Getting metadata for the disk")
+        
+        if not self.connected:
+            raise VixDiskLibError("Currently not connected, and trying to open vmdk")
+        
+        for name, value in metadata.items():
+            vixError = VixDiskLib_WriteMetadata(self.handle, PyString_AsString(name), PyString_AsString(value))
+            if vixError != VIX_OK:
+                self._handleError("Error writing metadata: %s, %s" % (name, value), vixError)
     
-    def create(self):
+    def create(self, path, create_params):
         """
         Creates a local disk. Remote disk creation is not supported.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
-    
+        if not self.connected:
+            raise VixDiskLibError("Currently not connected, and trying to open vmdk")
+        
+        self.create_params.diskType     = create_params.disk_type
+        self.create_params.adapterType  = create_params.adapter_type
+        self.create_params.hwVersion    = create_params.hw_version
+        self.create_params.capacity     = create_params.capacity
+        
+        vixError = VixDiskLib_Create(self.conn, PyString_AsString(path), &(self.create_params), NULL, NULL)
+        if vixError != VIX_OK:
+            self._handleError("Error creating vmdk", vixError)
+
     def createChild(self):
         """
         Creates a redo log from a parent disk.
         """
         raise VixDiskUnimplemented("Currently unimplemented")
 
-    def unlink(self):
+    def unlink(self, path):
         """
         Deletes all extents of the specified disk link. If the path refers to a
         parent disk, the child (redo log) will be orphaned.
         Unlinking the child does not affect the parent.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
-        
+        vixError = VixDiskLib_Unlink(self.conn, PyString_AsString(path))
+        if vixError != VIX_OK:
+            self._handleError("Error unlinking disk", vixError)
+            
     def shrink(self):
         """
         Shrinks an existing disk, only local disks are shrunk.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
+        vixError = VixDiskLib_Shrink(self.handle, NULL, NULL)
+        if vixError != VIX_OK:
+            self._handleError("Error shrinking disk", vixError)
         
-    def grow(self):
+    def grow(self, path, size, update_geometry=False):
         """
         Grows an existing disk, only local disks are grown.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
+        if update_geometry:
+            truth = TRUE
+        else:
+            truth = FALSE
+        vixError = VixDiskLib_Grow(self.conn, PyString_AsString(path), 
+                       size, truth, NULL, NULL)
+        if vixError != VIX_OK:
+            self._handleError("Error growing disk", vixError)
 
     def defragment(self):
         """
         Defragments an existing disk.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
+        vixError = VixDiskLib_Defragment(self.handle, NULL, NULL)
+        if vixError != VIX_OK:
+            self._handleError("Error defragementing disk", vixError)
 
-    def rename(self):
+    def rename(self, source, destination):
         """
         Renames a virtual disk.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
+        vixError = VixDiskLib_Rename(PyString_AsString(source), PyString_AsString(destination))
+        if vixError != VIX_OK:
+            self._handleError("Error renaming disk", vixError)
+        
 
-    def clone(self):
+    def clone(self, path, source_connection, source_path, create_params, over_write=True):
         """
         Copies a disk with proper conversion.
         """
@@ -287,10 +328,14 @@ cdef class VixDiskBase(VixBase):
         """
         raise VixDiskUnimplemented("Currently unimplemented")
 
-    def check(self):
+    def needs_repair(self, filename):
         """
         Check a sparse disk for internal consistency.
         """
-        raise VixDiskUnimplemented("Currently unimplemented")
+        cdef bint repair
+        vixError = VixDiskLib_CheckRepair(self.conn, PyString_AsString(filename), repair)
+        if vixError != VIX_OK:
+            self._handleError("Error renaming disk", vixError)
+        return repair == TRUE
 
 
