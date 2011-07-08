@@ -39,6 +39,10 @@ cdef extern from "Python.h":
     # length len on success, and NULL on failure. If v is NULL, the contents of
     # the string are uninitialized.
     object PyString_FromStringAndSize(char *v, int len)
+    object PyString_FromString(char *s)
+    
+    char* PyString_AsString(object)
+    int PyString_Size(object s)
 
     # Return a NUL-terminated representation of the contents of the object obj
     # through the output variables buffer and length. 
@@ -74,10 +78,12 @@ cdef extern from "Python.h":
     int PyOS_vsnprintf(char *str, int size, const_char_ptr format, va_list va)
 
     FILE *PySys_GetFile(char *name, FILE *default)
-    int PyString_Size(object s)
     
-    char* PyString_AsString(object)
-    object PyString_FromString(char *s)
+    ctypedef int Py_intptr_t
+    void Py_INCREF(object)
+    void Py_DECREF(object)
+    
+    object PyCObject_FromVoidPtrAndDesc( void* cobj, void* desc, void (*destr)(void *, void *))
     
     
 cdef extern from "stdio.h":
@@ -104,6 +110,23 @@ cdef extern from "stdint.h":
     ctypedef          long      int32
     ctypedef          long long int64
 
+cdef extern from "numpy/arrayobject.h":
+    cdef object PyArray_SimpleNewFromData(int nd,
+                                          np.npy_intp *dims,
+                                          int typenum,
+                                          void *data)
+    cdef object PyArray_ZEROS(int nd,
+                              np.npy_intp *dims,
+                              int typenum,
+                              int fortran)
+    cdef object PyArray_SimpleNew(int nd,
+                                  np.npy_intp *dims,
+                                  int typenum)
+    cdef object PyArray_Arange(double start,
+                               double stop,
+                               double step,
+                               int typenum)
+    
 ctypedef unsigned short Bool
 
 # PIDs are too long for 16 bits, short enough to fit in 32

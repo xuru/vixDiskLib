@@ -7,30 +7,6 @@ import numpy as np
 # currently part of the Cython distribution).
 cimport numpy as np
 
-cdef extern from "Python.h":
-    ctypedef int Py_intptr_t
-    void Py_INCREF(object)
-    void Py_DECREF(object)
-    object PyCObject_FromVoidPtrAndDesc( void* cobj, void* desc, void (*destr)(void *, void *))
-
-cdef extern from "numpy/arrayobject.h":
-    cdef object PyArray_SimpleNewFromData(int nd,
-                                          np.npy_intp *dims,
-                                          int typenum,
-                                          void *data)
-    cdef object PyArray_ZEROS(int nd,
-                              np.npy_intp *dims,
-                              int typenum,
-                              int fortran)
-    cdef object PyArray_SimpleNew(int nd,
-                                  np.npy_intp *dims,
-                                  int typenum)
-    cdef object PyArray_Arange(double start,
-                               double stop,
-                               double step,
-                               int typenum)
-
-
 cdef extern from "vixDiskLib.h":
     ctypedef uint64 VixError
     ctypedef uint64 VixDiskLibSectorType
