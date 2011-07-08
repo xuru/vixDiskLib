@@ -34,17 +34,13 @@ __author__ = "Eric Plaster"
 
 __all__ = [
     'VixDiskLib_SectorSize', 'VixDiskLib_DefaultBlockSize', 'VixDiskLib_SectorsPerBlock',
-    'VixDiskOpenFlags', 'VixDiskLibError', 'VixDiskUnimplemented',
-    'VixCredentials', 'VixDisk',
+    'VixDiskOpenFlags', 'VixDiskLibError', 'VixDiskUnimplemented', 'VixCredentials', 
+    'VixDisk', 'VixDiskLibAdapterType', 'VixDiskLibDiskType', 'VixDiskLibCreateParams'
 ]
 
 from vixDiskBase import VixDiskBase, VixDiskLib_SectorSize, VixDiskLib_DefaultBlockSize, VixDiskLib_SectorsPerBlock
 from vixExceptions import VixDiskLibError, VixDiskUnimplemented
-
-class VixDiskOpenFlags:
-    UNBUFFERED = 1
-    SINGLE_LINK = 2
-    READ_ONLY = 4
+from consts import VixDiskLibAdapterType, VixDiskLibDiskType, VixDiskOpenFlags
 
 class VixCredentials(object):
     """ VixDiskLib Credentials to log into a vcenter or ESX server """
@@ -52,6 +48,14 @@ class VixCredentials(object):
         self.host = host
         self.username = username
         self.password = password
+
+class VixDiskLibCreateParams:
+    """ Disk creation parameters """
+    def __init__(self, disk_type, adapter_type, hw_version, capacity):
+        self.diskType = disk_type
+        self.adapterType = adapter_type
+        self.hwVersion = hw_version
+        self.capacity = capacity
 
 class VixDisk(VixDiskBase):
     """ A file IO interface to the vixDiskLib SDK """
