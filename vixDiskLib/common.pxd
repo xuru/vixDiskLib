@@ -1,5 +1,11 @@
 """ Common Definitions """
 
+# "cimport" is used to import special compile-time information
+# about the numpy module (this is stored in a file numpy.pxd which is
+# currently part of the Cython distribution).
+cimport numpy as np
+import numpy as np
+
 cdef extern from "stdio.h":
     ctypedef struct FILE:
         int _fileno
