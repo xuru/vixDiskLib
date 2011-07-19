@@ -1,0 +1,3 @@
+vixDiskLib.transport.LogLevel=TRANSPORT_LOGLEVEL
+vixDiskLib.nfc.LogLevel=NFC_LOGLEVEL
+tmpDirectory="TEMP_DIR"
