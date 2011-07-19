@@ -4,7 +4,7 @@ import logging, time
 from common cimport *
 from vddk cimport *
 
-from vixExceptions import VixDiskLibError, VixDiskUnimplemented
+from vixDiskLib.vixExceptions import VixDiskLibError, VixDiskUnimplemented
 from vddk cimport *
 
 log = logging.getLogger("vixDiskLib.base")
@@ -25,31 +25,38 @@ cdef void LogFunc(char *format, va_list args):
 
 cdef class VixBase(object):
     
-    def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
+    def __init__(self, credentials=None, libdir=None, config=None, callback=None):
         """
         vixBase - Setup, and connect to the vcenter or ESX server.  Note: vix-disklib 
         requires a vmspec to connect.
         """
-        self.connected = False
+        self.cred       = credentials # save for log output
+        self.connected  = False
         self._read_only = False
-        self.cred = credentials # save for log output
+        self.is_remote  = False
+        self._libdir    = None
+        self._config    = None
         
-        if not vmxSpec.startswith("moref="):
-            vmxSpec = "moref=" + vmxSpec
+        if credentials:
+            if credentials.vmxSpec:
+                
+                if not credentials.vmxSpec.startswith("moref="):
+                    credentials.vmxSpec = "moref=" + credentials.vmxSpec
+                    
+            # build up the connect structure
+            self.params.vmxSpec             = strdup(PyString_AsString(credentials.vmxSpec))
+            self.params.serverName          = strdup(PyString_AsString(credentials.host))
+            self.params.creds.uid.userName  = strdup(PyString_AsString(credentials.username))
+            self.params.creds.uid.password  = strdup(PyString_AsString(credentials.password))
+            self.params.credType            = VIXDISKLIB_CRED_UID
+            self.params.port                = 0
+            self.is_remote = True
+        else:
+            memset(&self.params, 0, sizeof(self.params))
         
-        # build up the connect structure
-        self.params.vmxSpec             = strdup(PyString_AsString(vmxSpec))
-        self.params.serverName          = strdup(PyString_AsString(credentials.host))
-        self.params.credType            = VIXDISKLIB_CRED_UID
-        self.params.creds.uid.userName  = strdup(PyString_AsString(credentials.username))
-        self.params.creds.uid.password  = strdup(PyString_AsString(credentials.password))
-        self.params.port                = 0
-        
-        self._libdir = None
         if libdir:
             self._libdir = libdir
             
-        self._config = None
         if config:
             self._config = config
             
@@ -82,12 +89,16 @@ cdef class VixBase(object):
         Initialize the vix-disklib library and setup logging 
         """
         log.debug("Initializing vixDiskLib")
-        vix_error = VixDiskLib_InitEx(VIXDISKLIB_VERSION_MAJOR, VIXDISKLIB_VERSION_MINOR, 
-                <VixDiskLibGenericLogFunc*>&LogFunc, 
-                <VixDiskLibGenericLogFunc*>&LogFunc, 
-                <VixDiskLibGenericLogFunc*>&LogFunc, 
-                PyString_AsString(self._libdir), 
-                PyString_AsString(self._config))
+        if self.is_remote:
+            vix_error = VixDiskLib_InitEx(VIXDISKLIB_VERSION_MAJOR, VIXDISKLIB_VERSION_MINOR, 
+                                          <VixDiskLibGenericLogFunc*>&LogFunc, 
+                                          <VixDiskLibGenericLogFunc*>&LogFunc, 
+                                          <VixDiskLibGenericLogFunc*>&LogFunc, 
+                                          PyString_AsString(self._libdir), 
+                                          PyString_AsString(self._config))
+        else:
+            vix_error = VixDiskLib_InitEx(VIXDISKLIB_VERSION_MAJOR, VIXDISKLIB_VERSION_MINOR,
+                                          NULL, NULL, NULL, NULL, NULL);
         
         if vix_error != VIX_OK:
             self._handleError("Error initializing the vixDiskLib library", vix_error)
@@ -99,10 +110,14 @@ cdef class VixBase(object):
         if self.connected:
             self.disconnect()
             
-        free(self.params.vmxSpec)
-        free(self.params.serverName)
-        free(self.params.creds.uid.userName)
-        free(self.params.creds.uid.password)
+        if self.params.vmxSpec != NULL:
+            free(self.params.vmxSpec)
+        if self.params.serverName != NULL:
+            free(self.params.serverName)
+        if self.params.creds.uid.userName != NULL:
+            free(self.params.creds.uid.userName)
+        if self.params.creds.uid.password != NULL:
+            free(self.params.creds.uid.password)
 
         VixDiskLib_Exit()
         
@@ -115,9 +130,11 @@ cdef class VixBase(object):
         usleep(100)
         self.connect()
         
-    def connect(self, snapshotRef, transport=None, readonly=True):
-        log.debug("Connecting to %s as %s" % (self.cred.host, self.cred.username))
+    def connect(self, snapshotRef=None, transport=None, readonly=True):
+        if hasattr(self.cred, "host"):
+            log.debug("Connecting to %s as %s" % (self.cred.host, self.cred.username))
         cdef char *_transport
+        cdef char *_snapshotRef
         
         if self.connected:
             raise VixDiskLibError("Already Connected, and trying to connect...")
@@ -129,14 +146,19 @@ cdef class VixBase(object):
         if transport:
             _transport = PyString_AsString(transport)
         
-        vix_error = VixDiskLib_ConnectEx(&(self.params), self._read_only, snapshotRef, _transport, &(self.conn))
+        _snapshotRef = NULL
+        if snapshotRef:
+            _snapshotRef = snapshotRef
+            
+        vix_error = VixDiskLib_ConnectEx(&(self.params), self._read_only, _snapshotRef, _transport, &(self.conn))
         if vix_error != VIX_OK:
             self._handleError("Error connecting to %s" % self.params.serverName, vix_error)
             
         self.connected = True
         
     def disconnect(self):
-        log.debug("Disconnecting from %s" % self.cred.host)
+        if hasattr(self.cred, "host"):
+            log.debug("Disconnecting from %s" % self.cred.host)
         
         if not self.connected:
             raise VixDiskLibError("Not Connected, and trying to disconnect...")
@@ -175,7 +197,6 @@ cdef class VixBase(object):
                 doc="The location of the vix-disklib libraries.")
     config = property(_getconfig, _setconfig,
                 doc="The location of the vix-disklib configuration file.")
-        
         
         
         
