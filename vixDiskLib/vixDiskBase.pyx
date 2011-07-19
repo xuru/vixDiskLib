@@ -1,5 +1,5 @@
 
-import logging
+import logging, os.path
 from vixDiskLib.vixExceptions import VixDiskLibError, VixDiskUnimplemented
 
 from common cimport *
@@ -21,7 +21,7 @@ log = logging.getLogger("vixDiskLib.vixDiskBase")
 DTYPE  = np.uint8
 ctypedef np.uint8_t DTYPE_t
 
-cdef int DEFAULT_BLOCK_SIZE     = 1048576 # 1MB
+cdef int DEFAULT_BLOCK_SIZE     = 1024
 cdef uint32 SECTORS_PER_BLOCK   = DEFAULT_BLOCK_SIZE/VIXDISKLIB_SECTOR_SIZE
 
 cdef unsigned short TRUE = 1
@@ -38,21 +38,31 @@ cdef class VixDiskBase(VixBase):
     cdef VixDiskLibHandle handle
     cdef np.ndarray buff
     
-    def __init__(self, credentials=None, libdir=None, config=None, callback=None):
+    def __init__(self, credentials=None, libdir=None, config=None, block_size=DEFAULT_BLOCK_SIZE, callback=None):
         super(VixDiskBase, self).__init__(credentials, libdir, config, callback)
         
         self.vmdk_path = None
         self.opened = False
         self._transport_mode = None
-        #self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
+        self._block_size = block_size
+        self.sectors_per_block = self._block_size / VIXDISKLIB_SECTOR_SIZE
         
-    def _getTransportMode(self):
+    def getTransportMode(self):
         return self._transport_mode
-    transport_mode = property(_getTransportMode)
+    transport_mode = property(getTransportMode)
     
-    def _getAvailableTransportModes(self):
-        return VixDiskLib_ListTransportModes()
-    available_modes = property(_getAvailableTransportModes)
+    def getAvailableTransportModes(self):
+        return VixDiskLib_ListTransportModes().split(":")
+    available_modes = property(getAvailableTransportModes)
+    
+    def getBlockSize(self):
+        return self._block_size
+    
+    def setBlockSize(self, size):
+        if size % VIXDISKLIB_SECTOR_SIZE:
+            raise VixDiskLibError("block size is not the integral multiple of sector size %d\n" % VIXDISKLIB_SECTOR_SIZE)
+        self._block_size = size
+    block_size = property(getBlockSize, setBlockSize)
     
     def open(self, path, single=False):
         """
@@ -153,12 +163,11 @@ cdef class VixDiskBase(VixBase):
         cdef VixDiskLibSectorType sector_offset
         cdef VixDiskLibSectorType sectors_to_read
         
-        sectors_to_read = (nblocks * SECTORS_PER_BLOCK)  # number of sectors to read
-        sector_offset = offset * SECTORS_PER_BLOCK       # from blocks to sectors
+        sectors_to_read = (nblocks * self.sectors_per_block)  # number of sectors to read
+        sector_offset = offset * self.sectors_per_block       # from blocks to sectors
         
         nbytes = (sectors_to_read * VIXDISKLIB_SECTOR_SIZE)
         
-        log.debug("Reading %d bytes..." % nbytes)
         if self.buff.size != nbytes:
             log.debug("Resizing buffer to %d" % nbytes)
             self.buff.resize(nbytes)
@@ -177,17 +186,16 @@ cdef class VixDiskBase(VixBase):
         @param buff: np.ndarray of bytes
         Note: SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE (1048576 or 1MB) / VIXDISKLIB_SECTOR_SIZE (512)
               SECTORS_PER_BLOCK = 2048 sectors
-              1 block = 1048576 byts or 1MB
+              1 block = 1048576 bytes or 1MB
         """
         cdef VixDiskLibSectorType sector_offset
         cdef VixDiskLibSectorType sectors_to_write
         
-        sector_offset = offset * SECTORS_PER_BLOCK       # from blocks to sectors
-        sectors_to_write = (nblocks * SECTORS_PER_BLOCK)  # number of sectors to write
+        sectors_to_write = (nblocks * self.sectors_per_block)  # number of sectors to write
+        sector_offset = offset * self.sectors_per_block        # from blocks to sectors
         
-        nbytes = (sectors_to_write * VIXDISKLIB_SECTOR_SIZE)
+        #nbytes = (sectors_to_write * VIXDISKLIB_SECTOR_SIZE)
        
-        log.debug("Writing %d bytes..." % nbytes)
         vix_error = VixDiskLib_Write(self.handle, sector_offset, sectors_to_write, <uint8 *>buff.data)
         if vix_error != VIX_OK:
             self._handleError("Error reading the disk: %s" % self.vmdk_path, vix_error)
@@ -217,17 +225,17 @@ cdef class VixDiskBase(VixBase):
         
         cdef char *key = <char *>buffer.data
         while key[0]:
-            vixError = VixDiskLib_ReadMetadata(self.handle, key, NULL, 0, &requiredLen);
+            vixError = VixDiskLib_ReadMetadata(self.handle, key, NULL, 0, &requiredLen)
             if vixError != VIX_OK and vixError != VIX_E_BUFFER_TOOSMALL:
                 self._handleError("Error getting metadata", vixError)
             
             val = np.ndarray(requiredLen, dtype=np.uint8)
-            vixError = VixDiskLib_ReadMetadata(self.handle, key, <char *>val.data, requiredLen, NULL);
+            vixError = VixDiskLib_ReadMetadata(self.handle, key, <char *>val.data, requiredLen, NULL)
             if vixError != VIX_OK:
                 self._handleError("Error getting metadata", vixError)
                 
             metadata[key] = val.tostring()[:-1]
-            key += (1 + strlen(key));
+            key += (1 + strlen(key))
         return metadata
     
     def setMetadata(self, metadata):
@@ -244,59 +252,92 @@ cdef class VixDiskBase(VixBase):
             if vixError != VIX_OK:
                 self._handleError("Error writing metadata: %s, %s" % (name, value), vixError)
     
-    def create(self, path, create_params, remote=False):
+    def create(self, path, create_params):
         """
         Creates a local disk. Remote disk creation is not supported.
         """
         if not self.connected:
             raise VixDiskLibError("Currently not connected, and trying to open vmdk")
         
-        if remote:
+        if self.is_remote:
             self._create_remote(path, create_params)
         else:
-            print "%s" % create_params
-            self._create_local(path, create_params.adapterType, create_params.diskType, 
-                               create_params.hwVersion, PyInt_AsUnsignedLongMask(create_params.capacity))
+            self._create_local(path, create_params)
     
-    def _create_local(self, path, int adapterType, int diskType, uint16 hwVersion, uint64 capacity):
+    def _create_local(self, path, create_params):
         cdef VixDiskLibCreateParams params
+
+        params.adapterType  = <VixDiskLibAdapterType>create_params.adapter_type
+        # total capacity in sectors
+        params.capacity     = create_params.blocks * self.sectors_per_block
+        params.diskType     = <VixDiskLibDiskType>create_params.disk_type
+        params.hwVersion    = create_params.hw_version
         
-        params.adapterType  = <VixDiskLibAdapterType>adapterType
-        params.capacity     = capacity
-        params.diskType     = <VixDiskLibDiskType>diskType
-        params.hwVersion    = hwVersion
+        print "blocks: %d" % create_params.blocks
+        print "sec/block: %d" % self.sectors_per_block
+        print "sector size: %d" % VIXDISKLIB_SECTOR_SIZE
+        print "sectors: %d" % params.capacity
         
-        print "connected: %s" % str(self.connected)
-        vixError = VixDiskLib_Create(self.conn, PyString_AsString(path), &params, NULL, NULL)
+        print "adapter: %s" % str(create_params.adapter_type)
+        print "disktype: %s" % str(create_params.disk_type)
+        print "hwversion: %s" % str(create_params.hw_version)
+
+        vixError = VixDiskLib_Create(self.conn, path, &params, <VixDiskLibProgressFunc>create_progress_func, NULL)
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
-        
+            
     def _create_remote(self, path, create_params):
+        cdef VixDiskLibCreateParams params
+        cdef VixDiskLibHandle srcHandle
+        
+        # 1) make a local connection
         cdef VixDiskLibConnection local_conn
         cdef VixDiskLibConnectParams cnx_params_local
-        cdef VixDiskLibCreateParams params
         
         memset(&cnx_params_local, 0, sizeof(cnx_params_local))
-        vixError = VixDiskLib_Connect(&cnx_params_local, &local_conn);
+        vixError = VixDiskLib_Connect(&cnx_params_local, &local_conn)
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
         
+        # 2) create the local disk
         memset(&params, 0, sizeof(params))
-        params.adapterType  = create_params.adapterType
-        params.capacity     = PyInt_AsUnsignedLongMask(create_params.capacity)
-        params.diskType     = create_params.diskType
-        params.hwVersion    = create_params.hwVersion
+        params.adapterType  = <VixDiskLibAdapterType>create_params.adapter_type
+        # total capacity in sectors
+        params.capacity     = create_params.blocks * self.sectors_per_block
+        params.diskType     = <VixDiskLibDiskType>create_params.disk_type
+        params.hwVersion    = create_params.hw_version
         
-        print "diskType: %d" % params.diskType
-        print "adapterType: %d" % params.adapterType
-        print "hwVersion: %d" % params.hwVersion
-        print "capacity: %d" % params.capacity
-        print "path: %s" % path
-
-        vixError = VixDiskLib_Create(local_conn, PyString_AsString(path), &(params), NULL, NULL)
+        vixError = VixDiskLib_Create(local_conn, "tmp.vmdk", &(params), NULL, NULL)
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
+        
+        # 3) Check how much space we'll need
+        vixError = VixDiskLib_Open(local_conn, "tmp.vmdk", 0, &srcHandle)
+        if vixError != VIX_OK:
+            self._handleError("Error opening tmp.vmdk", vixError)
+            
+        cdef uint64 spaceNeeded
+        VixDiskLib_SpaceNeededForClone(srcHandle, VIXDISKLIB_DISK_VMFS_THIN, &spaceNeeded)
+        if srcHandle:
+            vixError = VixDiskLib_Close(srcHandle)
+            if vixError != VIX_OK:
+                self._handleError("Error closing tmp.vmdk", vixError)
+        print "Required space for cloning: %llu" % spaceNeeded
+        
+        # 4) Start cloning the empty drive over
+        vixError = VixDiskLib_Clone(self.conn, path, local_conn, "tmp.vmdk",
+                                 &params, <VixDiskLibProgressFunc>clone_progress_func, NULL, TRUE)
+        if vixError != VIX_OK:
+            self._handleError("Error cloning disk to %s" % path, vixError)
 
+        # 5) Clean up
+        vixError = VixDiskLib_Unlink(local_conn, "tmp.vmdk")
+        if vixError != VIX_OK:
+            self._handleError("Error unlinking disk tmp.vmdk", vixError)
+            
+        # 6) Disconnect
+        VixDiskLib_Disconnect(local_conn)
+        
     def createChild(self):
         """
         Creates a redo log from a parent disk.
@@ -381,5 +422,12 @@ cdef Bool shrink_progress_func(void * data, int percent):
 # Progress callback for Clone.
 #
 cdef Bool clone_progress_func(void* data, int percent):
+    return TRUE
+
+#
+# Progress callback for Create.
+#
+cdef Bool create_progress_func(void* data, int percent):
+    print "percent: %d" % percent
     return TRUE
 

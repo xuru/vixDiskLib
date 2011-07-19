@@ -61,14 +61,14 @@ class VixCredentials(object):
 
 class VixDiskLib_CreateParams(object):
     """ Disk creation parameters """
-    def __init__(self, disk_type, adapter_type, hw_version, capacity):
-        self.diskType = disk_type
-        self.adapterType = adapter_type
-        self.hwVersion = hw_version
-        self.capacity = capacity
+    def __init__(self, disk_type, adapter_type, hw_version, blocks):
+        self.disk_type = disk_type
+        self.adapter_type = adapter_type
+        self.hw_version = hw_version
+        self.blocks = blocks
 
     def __str__(self):
-        return "%d, %d, %d, %d" % (self.diskType, self.adapterType, self.hwVersion, self.capacity)
+        return "%d, %d, %d, %d" % (self.diskType, self.adapterType, self.hwVersion, self.blocks)
 
     
     
