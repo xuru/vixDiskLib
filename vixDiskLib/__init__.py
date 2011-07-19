@@ -34,22 +34,32 @@ __author__ = "Eric Plaster"
 
 __all__ = [
     'VixDiskLib_SectorSize', 'VixDiskLib_DefaultBlockSize', 'VixDiskLib_SectorsPerBlock',
-    'VixDiskOpenFlags', 'VixDiskLibError', 'VixDiskUnimplemented', 'VixCredentials', 
-    'VixDisk', 'VixDiskLibAdapterType', 'VixDiskLibDiskType', 'VixDiskLibCreateParams'
+    'VixDiskLibError', 'VixDiskUnimplemented', 'VixDiskLibAdapterType', 'VixDiskLibDiskType', 
+    'VixDiskOpenFlags', 'VixDiskLibHwVersion', 'VixCredentials', 'VixDiskLibCreateParams', 'VixDisk',
+    'VixDiskBase'
 ]
 
-from vixDiskBase import VixDiskBase, VixDiskLib_SectorSize, VixDiskLib_DefaultBlockSize, VixDiskLib_SectorsPerBlock
 from vixExceptions import VixDiskLibError, VixDiskUnimplemented
-from consts import VixDiskLibAdapterType, VixDiskLibDiskType, VixDiskOpenFlags
+from consts import VixDiskLibAdapterType, VixDiskLibDiskType, VixDiskOpenFlags, VixDiskLibHwVersion
+
+from vixBase import VixBase
+from vixDiskBase import VixDiskBase
+from vixDisk import VixDisk
+
+# expose some of these to python
+VixDiskLib_SectorSize           = 512
+VixDiskLib_DefaultBlockSize     = 1048576
+VixDiskLib_SectorsPerBlock      = VixDiskLib_DefaultBlockSize/VixDiskLib_SectorSize
 
 class VixCredentials(object):
     """ VixDiskLib Credentials to log into a vcenter or ESX server """
-    def __init__(self, host, username, password):
+    def __init__(self, vmxSpec, host, username, password):
+        self.vmxSpec = vmxSpec
         self.host = host
         self.username = username
         self.password = password
 
-class VixDiskLibCreateParams:
+class VixDiskLib_CreateParams(object):
     """ Disk creation parameters """
     def __init__(self, disk_type, adapter_type, hw_version, capacity):
         self.diskType = disk_type
@@ -57,26 +67,9 @@ class VixDiskLibCreateParams:
         self.hwVersion = hw_version
         self.capacity = capacity
 
-class VixDisk(VixDiskBase):
-    """ A file IO interface to the vixDiskLib SDK """
-    
-    def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
-        VixDiskBase.__init__(vmxSpec, credentials, libdir, config, callback)
+    def __str__(self):
+        return "%d, %d, %d, %d" % (self.diskType, self.adapterType, self.hwVersion, self.capacity)
 
-    def iter(self, nblocks=1):
-        if not self.open:
-            raise VixDiskLibError("Disk must be open to use the generator method")
-        
-        _info = self.info()
-        for b in xrange(0, _info['blocks'], step=nblocks):
-            yield self.read(b, nblocks)
-    
-
-    
-    
-    
-    
-    
     
     
     
