@@ -90,7 +90,8 @@ cdef extern from "Python.h":
     void Py_DECREF(object)
     
     object PyCObject_FromVoidPtrAndDesc( void* cobj, void* desc, void (*destr)(void *, void *))
-    
+    long PyInt_AsLong(object io)
+    long PyInt_AsUnsignedLongMask(object io)
     
 cdef extern from "stdio.h":
     int printf (char * format, ... )
