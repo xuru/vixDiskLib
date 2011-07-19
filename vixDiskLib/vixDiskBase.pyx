@@ -1,11 +1,18 @@
 
 import logging
-from vixExceptions import VixDiskLibError, VixDiskUnimplemented
+from vixDiskLib.vixExceptions import VixDiskLibError, VixDiskUnimplemented
 
 from common cimport *
 from vddk cimport *
-
 cimport vixBase
+cimport numpy as np
+
+# "cimport" is used to import special compile-time information
+# about the numpy module (this is stored in a file numpy.pxd which is
+# currently part of the Cython distribution).
+import numpy as np
+
+
 from vixBase cimport *
 
 log = logging.getLogger("vixDiskLib.vixDiskBase")
@@ -25,27 +32,19 @@ cdef truth(value):
         return TRUE
     return FALSE
 
-# expose some of these to python
-VixDiskLib_SectorSize           = VIXDISKLIB_SECTOR_SIZE
-VixDiskLib_DefaultBlockSize     = DEFAULT_BLOCK_SIZE 
-VixDiskLib_SectorsPerBlock      = SECTORS_PER_BLOCK 
-
-
 cdef class VixDiskBase(VixBase):
     """ A file IO interface to the vixDiskLib SDK """
     
     cdef VixDiskLibHandle handle
     cdef np.ndarray buff
     
-    cdef VixDiskLibCreateParams create_params
-    
-    def __init__(self, vmxSpec, credentials, libdir=None, config=None, callback=None):
-        super(VixDiskBase, self).__init__(vmxSpec, credentials, libdir, config, callback)
+    def __init__(self, credentials=None, libdir=None, config=None, callback=None):
+        super(VixDiskBase, self).__init__(credentials, libdir, config, callback)
         
         self.vmdk_path = None
         self.opened = False
         self._transport_mode = None
-        self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
+        #self.buff = np.zeros(VIXDISKLIB_SECTOR_SIZE, dtype=DTYPE)
         
     def _getTransportMode(self):
         return self._transport_mode
@@ -245,19 +244,56 @@ cdef class VixDiskBase(VixBase):
             if vixError != VIX_OK:
                 self._handleError("Error writing metadata: %s, %s" % (name, value), vixError)
     
-    def create(self, path, create_params):
+    def create(self, path, create_params, remote=False):
         """
         Creates a local disk. Remote disk creation is not supported.
         """
         if not self.connected:
             raise VixDiskLibError("Currently not connected, and trying to open vmdk")
         
-        self.create_params.diskType     = create_params.disk_type
-        self.create_params.adapterType  = create_params.adapter_type
-        self.create_params.hwVersion    = create_params.hw_version
-        self.create_params.capacity     = create_params.capacity
+        if remote:
+            self._create_remote(path, create_params)
+        else:
+            print "%s" % create_params
+            self._create_local(path, create_params.adapterType, create_params.diskType, 
+                               create_params.hwVersion, PyInt_AsUnsignedLongMask(create_params.capacity))
+    
+    def _create_local(self, path, int adapterType, int diskType, uint16 hwVersion, uint64 capacity):
+        cdef VixDiskLibCreateParams params
         
-        vixError = VixDiskLib_Create(self.conn, PyString_AsString(path), &(self.create_params), NULL, NULL)
+        params.adapterType  = <VixDiskLibAdapterType>adapterType
+        params.capacity     = capacity
+        params.diskType     = <VixDiskLibDiskType>diskType
+        params.hwVersion    = hwVersion
+        
+        print "connected: %s" % str(self.connected)
+        vixError = VixDiskLib_Create(self.conn, PyString_AsString(path), &params, NULL, NULL)
+        if vixError != VIX_OK:
+            self._handleError("Error creating vmdk", vixError)
+        
+    def _create_remote(self, path, create_params):
+        cdef VixDiskLibConnection local_conn
+        cdef VixDiskLibConnectParams cnx_params_local
+        cdef VixDiskLibCreateParams params
+        
+        memset(&cnx_params_local, 0, sizeof(cnx_params_local))
+        vixError = VixDiskLib_Connect(&cnx_params_local, &local_conn);
+        if vixError != VIX_OK:
+            self._handleError("Error creating vmdk", vixError)
+        
+        memset(&params, 0, sizeof(params))
+        params.adapterType  = create_params.adapterType
+        params.capacity     = PyInt_AsUnsignedLongMask(create_params.capacity)
+        params.diskType     = create_params.diskType
+        params.hwVersion    = create_params.hwVersion
+        
+        print "diskType: %d" % params.diskType
+        print "adapterType: %d" % params.adapterType
+        print "hwVersion: %d" % params.hwVersion
+        print "capacity: %d" % params.capacity
+        print "path: %s" % path
+
+        vixError = VixDiskLib_Create(local_conn, PyString_AsString(path), &(params), NULL, NULL)
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
 
@@ -289,12 +325,8 @@ cdef class VixDiskBase(VixBase):
         """
         Grows an existing disk, only local disks are grown.
         """
-        if update_geometry:
-            truth = TRUE
-        else:
-            truth = FALSE
         vixError = VixDiskLib_Grow(self.conn, PyString_AsString(path), 
-                       size, truth, NULL, NULL)
+                       size, truth(update_geometry), NULL, NULL)
         if vixError != VIX_OK:
             self._handleError("Error growing disk", vixError)
 
@@ -328,14 +360,26 @@ cdef class VixDiskBase(VixBase):
         """
         raise VixDiskUnimplemented("Currently unimplemented")
 
-    def needs_repair(self, filename):
+    def needs_repair(self, filename, repair=False):
         """
         Check a sparse disk for internal consistency.
         """
-        cdef bint repair
-        vixError = VixDiskLib_CheckRepair(self.conn, PyString_AsString(filename), repair)
+        vixError = VixDiskLib_CheckRepair(self.conn, PyString_AsString(filename), truth(repair))
         if vixError != VIX_OK:
             self._handleError("Error renaming disk", vixError)
         return repair == TRUE
 
+
+
+#
+# Progress callback for shrink.
+#
+cdef Bool shrink_progress_func(void * data, int percent):
+    return TRUE
+
+#
+# Progress callback for Clone.
+#
+cdef Bool clone_progress_func(void* data, int percent):
+    return TRUE
 
