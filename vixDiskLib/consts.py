@@ -37,3 +37,4 @@ VixDiskLibHwVersion = dict(
 VixDiskOpenFlags = dict( UNBUFFERED = 0, SINGLE_LINK = 1, READ_ONLY = 4)
 
 
+VixDiskTransportModes = ['file', 'san', 'hotadd', 'ndbssl', 'ndb']
