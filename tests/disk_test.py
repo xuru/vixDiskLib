@@ -6,6 +6,7 @@ Created on Jul 8, 2011
 import unittest, os, os.path
 from vixDiskLib import VixDisk, VixDiskLib_CreateParams, VixDiskLib_DefaultBlockSize
 from vixDiskLib.consts import VixDiskLibDiskType, VixDiskLibAdapterType, VixDiskLibHwVersion, VixDiskTransportModes
+from vixDiskLib.vixExceptions import VixDiskLibError
 import numpy as np
 
 def setupConfigs():
@@ -23,16 +24,16 @@ def setupConfigs():
 class TestLocalDisk(unittest.TestCase):
 
     def setUp(self):
-        vix_config = setupConfig() # make sure that the config file exists
+        vix_config = setupConfigs() # make sure that the config file exists
         
         self.test_dir = os.path.abspath(os.path.dirname(__file__))
         self.test_disk = os.path.join(self.test_dir, "test.vmdk")
        
         self.block_size = 1024
-        self.test_disk_blocks = 1048576 # 1GB
+        self.test_disk_blocks = 256000 # 250MB
         
         # open a local disk
-        self.disk = VixDisk(libdir="/usr/lib/vmware-vix-disklib/lib64", vix_config=config, block_size=self.block_size)
+        self.disk = VixDisk(libdir="/usr/lib/vmware-vix-disklib/lib64", config=vix_config, block_size=self.block_size)
         self.disk.connect(readonly=False)
 
     def tearDown(self):
@@ -41,15 +42,12 @@ class TestLocalDisk(unittest.TestCase):
             os.unlink(self.test_disk)
 
     def testAvailableModes(self):
-        modes = self.disk.available_modes
-        
-        # as a minimum, we should have these modes available
-        for mode in ['file', 'ndbssl', 'ndb']:
-            self.assertIn('file', modes, 'Transport mode %s is not available' % mode)
+        # we haven't opened a disk, so we must assert
+        self.assertRaises(VixDiskLibError, self.disk.available_modes)
         
     def testGettingMode(self):
-        mode = self.disk.transport_mode
-        self.assertIn(mode, VixDiskTransportModes, "Got an invalid transport mode: %s" % mode)
+        # we haven't opened a disk, so we must assert
+        self.assertRaises(VixDiskLibError, self.disk.transport_mode)
         
     def testBlockSize(self):
         self.assertEqual(self.disk.block_size, self.block_size, 
@@ -67,15 +65,19 @@ class TestLocalDisk(unittest.TestCase):
         buffer = np.zeros(self.block_size, dtype=np.uint8)
         buffer.fill(42) # it's the answer
         
-        for block in xrange(blocks):
+        for block in xrange(self.test_disk_blocks):
             self.disk.write(block, 1, buffer)
             
         self.disk.close()
         
+        print "file size: %d" % os.stat(self.test_disk).st_size
+        print "calculated size: %d" % (self.test_disk_blocks*self.block_size)
+        
         # file sizes should be the same, but we'll give a little wiggle room in case header 
         # info is different with different filesystems
-        self.assertAlmostEqual(os.stat(self.test_disk), 1073938432, 
-                               "File size doesn't match what we where aiming for...", delta=1024)
+        size = self.test_disk_blocks*self.block_size
+        self.assertAlmostEqual(os.stat(self.test_disk).st_size, size,
+                           msg="File size doesn't match what we where aiming for...", delta=size*.001)
         
         
 
