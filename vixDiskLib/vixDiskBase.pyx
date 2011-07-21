@@ -48,10 +48,14 @@ cdef class VixDiskBase(VixBase):
         self.sectors_per_block = self._block_size / VIXDISKLIB_SECTOR_SIZE
         
     def getTransportMode(self):
+        if not self.opened:
+            raise VixDiskLibError("Transport mode is not available until a disk is opened.")
         return self._transport_mode
     transport_mode = property(getTransportMode)
     
     def getAvailableTransportModes(self):
+        if not self.opened:
+            raise VixDiskLibError("Transport mode is not available until a disk is opened.")
         return VixDiskLib_ListTransportModes().split(":")
     available_modes = property(getAvailableTransportModes)
     
@@ -273,14 +277,14 @@ cdef class VixDiskBase(VixBase):
         params.diskType     = <VixDiskLibDiskType>create_params.disk_type
         params.hwVersion    = create_params.hw_version
         
-        print "blocks: %d" % create_params.blocks
-        print "sec/block: %d" % self.sectors_per_block
-        print "sector size: %d" % VIXDISKLIB_SECTOR_SIZE
-        print "sectors: %d" % params.capacity
+        log.debug( "blocks: %d" % create_params.blocks )
+        log.debug( "sec/block: %d" % self.sectors_per_block )
+        log.debug( "sector size: %d" % VIXDISKLIB_SECTOR_SIZE )
+        log.debug( "sectors: %d" % params.capacity )
         
-        print "adapter: %s" % str(create_params.adapter_type)
-        print "disktype: %s" % str(create_params.disk_type)
-        print "hwversion: %s" % str(create_params.hw_version)
+        log.debug( "adapter: %s" % str(create_params.adapter_type) )
+        log.debug( "disktype: %s" % str(create_params.disk_type) )
+        log.debug( "hwversion: %s" % str(create_params.hw_version) )
 
         vixError = VixDiskLib_Create(self.conn, path, &params, <VixDiskLibProgressFunc>create_progress_func, NULL)
         if vixError != VIX_OK:
