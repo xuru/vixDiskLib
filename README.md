@@ -35,6 +35,7 @@
   Add in Change Block Tracking
     
 ## Example
+  <pre>
   from vixDiskLib import VixDisk, VixDiskLib_SectorSize, VixDiskOpenFlags, VixCredentials
     
   creds = VixCredentials("vcenter.domain.com", "myusername", "mysecretpassword")
@@ -61,6 +62,7 @@
     
   diskLib.close()
   diskLib.disconnect()
+  </pre>
 
 ## Authors
 
