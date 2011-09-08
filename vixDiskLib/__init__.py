@@ -68,7 +68,7 @@ class VixDiskLib_CreateParams(object):
         self.blocks = blocks
 
     def __str__(self):
-        return "%d, %d, %d, %d" % (self.diskType, self.adapterType, self.hwVersion, self.blocks)
+        return "%d, %d, %d, %d" % (self.disk_type, self.adapter_type, self.hw_version, self.blocks)
 
     
     
