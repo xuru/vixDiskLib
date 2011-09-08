@@ -48,6 +48,7 @@ setup(
     url = "https://github.com/xuru/vixDiskLib",
     platforms=["any"],
     license = "MIT",
+    requires = install_requires,
     ext_modules = cythonize(['vixDiskLib/vixBase.pyx', 'vixDiskLib/vixDiskBase.pyx'], aliases={'VMWARE_LIBDIR': libdir}),
     packages = ["vixDiskLib"],
     classifiers = ['Development Status :: 4 - Beta',
