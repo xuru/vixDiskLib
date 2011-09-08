@@ -26,8 +26,14 @@ vixDiskLib - python wrapper for vixDiskLib (in C)
 '''
 
 from distutils.core import setup
+import platform
 from Cython.Build import cythonize
 
+bits, _ = platform.architecture()
+if bits == '32bit':
+    libdir = "/usr/lib/vmware-vix-disklib/lib32"
+else:
+    libdir = "/usr/lib/vmware-vix-disklib/lib64"
 setup( 
     name = 'vixDiskLib',
     version = open('VERSION').read(),
@@ -38,7 +44,7 @@ setup(
     url = "https://github.com/xuru/vixDiskLib",
     platforms=["any"],
     license = "MIT",
-    ext_modules = cythonize(['vixDiskLib/vixBase.pyx', 'vixDiskLib/vixDiskBase.pyx']),
+    ext_modules = cythonize(['vixDiskLib/vixBase.pyx', 'vixDiskLib/vixDiskBase.pyx'], aliases={'VMWARE_LIBDIR': libdir}),
     packages = ["vixDiskLib"],
     classifiers = ['Development Status :: 4 - Beta',
                    'Framework :: VMWare',

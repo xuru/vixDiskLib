@@ -1,6 +1,7 @@
 # distutils: language = C
 # distutils: libraries = vixDiskLib vixMntapi
 # distutils: include_dirs = /usr/lib/vmware-vix-disklib/include
+# distutils: library_dirs = VMWARE_LIBDIR
 
 from common cimport *
 from vddk cimport *
