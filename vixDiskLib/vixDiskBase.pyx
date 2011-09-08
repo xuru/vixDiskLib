@@ -256,7 +256,7 @@ cdef class VixDiskBase(VixBase):
             if vixError != VIX_OK:
                 self._handleError("Error writing metadata: %s, %s" % (name, value), vixError)
     
-    def create(self, path, create_params):
+    def create(self, path, create_params, local_path=None):
         """
         Creates a local disk. Remote disk creation is not supported.
         """
@@ -264,7 +264,7 @@ cdef class VixDiskBase(VixBase):
             raise VixDiskLibError("Currently not connected, and trying to open vmdk")
         
         if self.is_remote:
-            self._create_remote(path, create_params)
+            self._create_remote(path, local_path, create_params)
         else:
             self._create_local(path, create_params)
     
@@ -290,7 +290,7 @@ cdef class VixDiskBase(VixBase):
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
             
-    def _create_remote(self, path, create_params):
+    def _create_remote(self, dest_path, local_path, create_params):
         cdef VixDiskLibCreateParams params
         cdef VixDiskLibHandle srcHandle
         
@@ -311,33 +311,33 @@ cdef class VixDiskBase(VixBase):
         params.diskType     = <VixDiskLibDiskType>create_params.disk_type
         params.hwVersion    = create_params.hw_version
         
-        vixError = VixDiskLib_Create(local_conn, "tmp.vmdk", &(params), NULL, NULL)
+        vixError = VixDiskLib_Create(local_conn, local_path, &(params), NULL, NULL)
         if vixError != VIX_OK:
             self._handleError("Error creating vmdk", vixError)
         
         # 3) Check how much space we'll need
-        vixError = VixDiskLib_Open(local_conn, "tmp.vmdk", 0, &srcHandle)
+        vixError = VixDiskLib_Open(local_conn, local_path, 0, &srcHandle)
         if vixError != VIX_OK:
-            self._handleError("Error opening tmp.vmdk", vixError)
+            self._handleError("Error opening " + local_path, vixError)
             
         cdef uint64 spaceNeeded
         VixDiskLib_SpaceNeededForClone(srcHandle, VIXDISKLIB_DISK_VMFS_THIN, &spaceNeeded)
         if srcHandle:
             vixError = VixDiskLib_Close(srcHandle)
             if vixError != VIX_OK:
-                self._handleError("Error closing tmp.vmdk", vixError)
-        print "Required space for cloning: %llu" % spaceNeeded
+                self._handleError("Error closing "+local_path, vixError)
+        print "Required space for cloning: %d" % spaceNeeded
         
         # 4) Start cloning the empty drive over
-        vixError = VixDiskLib_Clone(self.conn, path, local_conn, "tmp.vmdk",
+        vixError = VixDiskLib_Clone(self.conn, dest_path, local_conn, local_path,
                                  &params, <VixDiskLibProgressFunc>clone_progress_func, NULL, TRUE)
         if vixError != VIX_OK:
-            self._handleError("Error cloning disk to %s" % path, vixError)
+            self._handleError("Error cloning disk to %s" % dest_path, vixError)
 
         # 5) Clean up
-        vixError = VixDiskLib_Unlink(local_conn, "tmp.vmdk")
+        vixError = VixDiskLib_Unlink(local_conn, local_path)
         if vixError != VIX_OK:
-            self._handleError("Error unlinking disk tmp.vmdk", vixError)
+            self._handleError("Error unlinking disk "+local_path, vixError)
             
         # 6) Disconnect
         VixDiskLib_Disconnect(local_conn)
