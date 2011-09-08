@@ -29,11 +29,15 @@ from distutils.core import setup
 import platform
 from Cython.Build import cythonize
 
+# we need to make sure we have these to python modules in our path
+install_requires = ["Cython"]
+
 bits, _ = platform.architecture()
 if bits == '32bit':
     libdir = "/usr/lib/vmware-vix-disklib/lib32"
 else:
     libdir = "/usr/lib/vmware-vix-disklib/lib64"
+    
 setup( 
     name = 'vixDiskLib',
     version = open('VERSION').read(),
