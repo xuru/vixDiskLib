@@ -3,38 +3,21 @@ Created on Jul 8, 2011
 
 @author: eplaster
 '''
-import unittest, os, os.path
-from vixDiskLib import VixDisk, VixDiskLib_CreateParams, VixDiskLib_DefaultBlockSize
-from vixDiskLib.consts import VixDiskLibDiskType, VixDiskLibAdapterType, VixDiskLibHwVersion, VixDiskTransportModes
-from vixDiskLib.vixExceptions import VixDiskLibError
-import numpy as np
+import unittest, os.path
 
-def setupConfigs():
-    test_dir = os.path.abspath(os.path.dirname(__file__))
-    vix_config = os.path.join( test_dir, 'vix_disklib.cfg')
-    
-    if not os.path.exists(vix_config):
-        data = open( vix_config+'.in' ).read()
-        data = data.replace('TRANSPORT_LOGLEVEL', '6')
-        data = data.replace('NFC_LOGLEVEL', '4')
-        data = data.replace('TEMP_DIR', test_dir)
-        open( vix_config, 'w').write(data)
-    return vix_config
-        
+from vixDiskLib.consts import VixDiskTransportModes
+from vixDiskLib.vixExceptions import VixDiskLibError
+from utils import test_dir, get_connection, create_local_disk, default_disk_path
+
 class TestLocalDisk(unittest.TestCase):
 
     def setUp(self):
-        vix_config = setupConfigs() # make sure that the config file exists
-        
-        self.test_dir = os.path.abspath(os.path.dirname(__file__))
-        self.test_disk = os.path.join(self.test_dir, "test.vmdk")
-       
+        self.test_disk = os.path.join(test_dir, "test.vmdk")
         self.block_size = 1024
         self.test_disk_blocks = 256000 # 250MB
         
         # open a local disk
-        self.disk = VixDisk(libdir="/usr/lib/vmware-vix-disklib/lib64", config=vix_config, block_size=self.block_size)
-        self.disk.connect(readonly=False)
+        self.disk = get_connection(block_size=self.block_size)
 
     def tearDown(self):
         self.disk.disconnect()
@@ -43,32 +26,40 @@ class TestLocalDisk(unittest.TestCase):
 
     def testAvailableModes(self):
         # we haven't opened a disk, so we must assert
-        self.assertRaises(VixDiskLibError, self.disk.available_modes)
+        with self.assertRaises(VixDiskLibError):
+            modes = self.disk.available_modes
+            print modes
+    
+    def testAvailableModesAfterOpen(self):
+        create_local_disk(self.disk, blocks=self.test_disk_blocks)
+        self.disk.open(default_disk_path)
+        modes = self.disk.available_modes
+        
+        # as a minimum, we should have these modes available
+        for mode in ['file', 'ndbssl', 'ndb']:
+            self.assertIn('file', modes, 'Transport mode %s is not available' % mode)
+        self.disk.close()
         
     def testGettingMode(self):
         # we haven't opened a disk, so we must assert
-        self.assertRaises(VixDiskLibError, self.disk.transport_mode)
+        with self.assertRaises(VixDiskLibError):
+            mode = self.disk.transport_mode
+            print mode
+        
+    def testGettingModeAfterOpen(self):
+        create_local_disk(self.disk, blocks=self.test_disk_blocks)
+        self.disk.open(default_disk_path)
+        
+        mode = self.disk.transport_mode
+        self.assertIn(mode, VixDiskTransportModes, "Unsupported mode: %s" % mode)
+        self.disk.close()
         
     def testBlockSize(self):
         self.assertEqual(self.disk.block_size, self.block_size, 
                          "Block sizes didn't match: %d %d" % (self.block_size, self.disk.block_size))
         
     def testCreate(self):
-        params = VixDiskLib_CreateParams( disk_type = VixDiskLibDiskType['MONOLITHIC_SPARSE'],
-                adapter_type = VixDiskLibAdapterType['SCSI_LSILOGIC'],
-                hw_version = VixDiskLibHwVersion['CURRENT'], blocks = self.test_disk_blocks)
-        
-        self.disk.create(self.test_disk, params)
-        self.disk.open(self.test_disk)
-        
-        # fill up a 1k block of data
-        buffer = np.zeros(self.block_size, dtype=np.uint8)
-        buffer.fill(42) # it's the answer
-        
-        for block in xrange(self.test_disk_blocks):
-            self.disk.write(block, 1, buffer)
-            
-        self.disk.close()
+        create_local_disk(self.disk, blocks=self.test_disk_blocks)
         
         print "file size: %d" % os.stat(self.test_disk).st_size
         print "calculated size: %d" % (self.test_disk_blocks*self.block_size)
@@ -79,8 +70,6 @@ class TestLocalDisk(unittest.TestCase):
         self.assertAlmostEqual(os.stat(self.test_disk).st_size, size,
                            msg="File size doesn't match what we where aiming for...", delta=size*.001)
         
-        
-
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testDisk']
