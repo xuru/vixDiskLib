@@ -30,7 +30,7 @@ import platform
 from Cython.Build import cythonize
 
 # we need to make sure we have these to python modules in our path
-install_requires = ["Cython"]
+install_requires = ["Cython", "numpy"]
 
 bits, _ = platform.architecture()
 if bits == '32bit':
