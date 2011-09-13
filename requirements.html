@@ -1,0 +1,186 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>1. Requirements &mdash; vixDiskLib v0.2.2
+ documentation</title>
+    <link rel="stylesheet" href="static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2
+',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <link rel="top" title="vixDiskLib v0.2.2
+ documentation" href="index.html" />
+    <link rel="next" title="3. vixDisk" href="vixDiskLib.html" />
+    <link rel="prev" title="vixDiskLib wrapper in Python" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="vixDiskLib.html" title="3. vixDisk"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="vixDiskLib wrapper in Python"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">vixDiskLib v0.2.2
+ documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="requirements">
+<h1>1. Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h1>
+<p>For Linux, you will need to install the following packages from your distribution:</p>
+<ul class="simple">
+<li>The development version of python</li>
+<li>pkg-config</li>
+</ul>
+<p>From VMware, you will need to install:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://www.vmware.com/download/download.do?downloadGroup=VDDK-1-2">VMware Virtual Disk Development Kit 1.2</a>.</li>
+</ul>
+<p>Python packages that are needed:</p>
+<ul class="simple">
+<li>Cython</li>
+<li>numpy</li>
+</ul>
+<p>If you find that when you try to import the module, you get an error something like:
+ImportError: libvixDiskLibVim.so.1: cannot open shared object file: No such file or directory
+You need to setup your library path to point to the location of your vix-disklib directory (usually in /usr/lib/vmware-vix-disklib/lib64 or /usr/lib/vmware-vix-disklib/lib32).  To do this, execute the following command:</p>
+<blockquote>
+<div>sudo ldconfig /usr/lib/vmware-vix-disklib/lib64/</div></blockquote>
+<p>I&#8217;ve found this causes conflicts with other libraries on the system, so what I usually do is:</p>
+<div class="highlight-python"><pre>$ cd /usr/lib/vmware-vix-disklib/lib64/
+$ mkdir removed
+$ mv libcrypto.so.* libcurl.so.* libglib-* libgobject-* libgthread-* libssl.so.* removed
+
+$ echo "/usr/lib/vmware-vix-disklib/lib64" &gt; /etc/ld.so.conf.d/vmware-vix-disklib.conf
+$ ldconfig</pre>
+</div>
+</div>
+<div class="section" id="ubuntu-users">
+<h1>2. Ubuntu Users<a class="headerlink" href="#ubuntu-users" title="Permalink to this headline">¶</a></h1>
+<p>In order to use the vix disk library from VMware and be able to use SAN transport, you will have
+to modify the library it&#8217;s self.  This of course may ruin your library and delete all your
+virtual machines and burn your vcenter to the ground.  You have been warned.</p>
+<p>In order to modify the library to work with newer kernels in Ubuntu, Debian and probably other distributions,
+you will need to modify where the library looks for the mapped devices.  In my system, I point it to /vmware/mapper.</p>
+<p>When you install the vmware-vix-disklib distribution, it will install it&#8217;s self in /usr/lib/vmware-vix-disklib.  The library
+that we are interested in is libdiskLibPlugin.so.  So whether you running a 32bit or 64bit machine (64 bit here),
+it will be located in plugins32 or plugins64.  So bring up a term, sudo to root and change directories to the plugins directory.</p>
+<blockquote>
+<div>$ sudo su
+$ cd /usr/lib/vmware-vix-disklib/plugins64</div></blockquote>
+<p>Now copy the library so that you can recover it later if it doesn&#8217;t work.  Then run the following command to modify the library:</p>
+<div class="highlight-python"><pre>$ mv libdiskLibPlugin.so libdiskLibPlugin.so.org
+$ sed -e 's@%s/class/scsi_disk@/////vmware/mapper@' libdiskLibPlugin.so.org &gt; libdiskLibPlugin.so</pre>
+</div>
+<p>Next, we&#8217;ll need to make links to the correct device mappers.  This will need to be done on every boot, so put it in
+a script and link it to /etc/init.d.  Here is mine:</p>
+<div class="highlight-python"><pre>#!/bin/bash
+
+shopt -s extglob
+
+for f in /dev/mapper/mpath+([0-9]) ; do
+  d=$(basename $f)
+  mkdir -p /vmware/mapper/$d/device/$d
+  ln -sf /vmware/mapper/$d/device/$d /vmware/mapper/$d/device/block:$d
+  ln -sf /dev/mapper/$d /dev/$d
+done</pre>
+</div>
+<p>This script assumes that the devices in question (a fiber connection to our SAN, using multipath) are in /dev/mapper/mpath*.
+This may be different on your system.  Flavor to taste.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">1. Requirements</a></li>
+<li><a class="reference internal" href="#ubuntu-users">2. Ubuntu Users</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">vixDiskLib wrapper in Python</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="vixDiskLib.html"
+                        title="next chapter">3. vixDisk</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="sources/requirements.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="vixDiskLib.html" title="3. vixDisk"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="vixDiskLib wrapper in Python"
+             >previous</a> |</li>
+        <li><a href="index.html">vixDiskLib v0.2.2
+ documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Eric Plaster.
+      Last updated on Sep 12, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

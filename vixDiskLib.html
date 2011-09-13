@@ -1,0 +1,472 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>3. vixDisk &mdash; vixDiskLib v0.2.2
+ documentation</title>
+    <link rel="stylesheet" href="static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.2.2
+',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <link rel="top" title="vixDiskLib v0.2.2
+ documentation" href="index.html" />
+    <link rel="next" title="4. Exceptions" href="exceptions.html" />
+    <link rel="prev" title="1. Requirements" href="requirements.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="exceptions.html" title="4. Exceptions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="requirements.html" title="1. Requirements"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">vixDiskLib v0.2.2
+ documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-vixDiskLib">
+<span id="vixdisk"></span><h1>3. vixDisk<a class="headerlink" href="#module-vixDiskLib" title="Permalink to this headline">¶</a></h1>
+<p>This package wraps up the vix-disklib library from vmware, and creates binding for python.</p>
+<dl class="class">
+<dt id="vixDiskLib.vixDisk.VixDisk">
+<em class="property">class </em><tt class="descclassname">vixDiskLib.vixDisk.</tt><tt class="descname">VixDisk</tt><a class="headerlink" href="#vixDiskLib.vixDisk.VixDisk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vixDiskLib.vixDiskBase.VixDiskBase" title="vixDiskLib.vixDiskBase.VixDiskBase"><tt class="xref py py-class docutils literal"><span class="pre">vixDiskLib.vixDiskBase.VixDiskBase</span></tt></a></p>
+<p>A file IO interface to the vixDiskLib SDK</p>
+<dl class="method">
+<dt id="vixDiskLib.vixDisk.VixDisk.iter">
+<tt class="descname">iter</tt><big>(</big><em>nblocks=1</em><big>)</big><a class="headerlink" href="#vixDiskLib.vixDisk.VixDisk.iter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an iterator that will read from the currently open disk using <cite>nblocks</cite></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase">
+<em class="property">class </em><tt class="descclassname">vixDiskLib.vixDiskBase.</tt><tt class="descname">VixDiskBase</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#vixDiskLib.vixBase.VixBase" title="vixDiskLib.vixBase.VixBase"><tt class="xref py py-class docutils literal"><span class="pre">vixDiskLib.vixBase.VixBase</span></tt></a></p>
+<p>A file IO interface to the vixDiskLib SDK</p>
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.attach">
+<tt class="descname">attach</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.attach" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attaches the child disk chain to the parent disk chain. Parent handle is
+invalid after attaching and child represents the combined disk chain.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.available_modes">
+<tt class="descname">available_modes</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.available_modes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of available transport modes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">The list of available transport modes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.block_size">
+<tt class="descname">block_size</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.block_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>The block size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.clone">
+<tt class="descname">clone</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.clone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies a disk with proper conversion.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.close">
+<tt class="descname">close</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes the disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.create">
+<tt class="descname">create</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a disk.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> &#8211; The path where the disk will be created.</li>
+<li><strong>create_params</strong> &#8211; The <cite>:py:class:VixDiskLib_CreateParams</cite> that will be used to create the disk.</li>
+<li><strong>local_path</strong> &#8211; The path for the local disk, if creating a local disk.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.createChild">
+<tt class="descname">createChild</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.createChild" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a redo log from a parent disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.defragment">
+<tt class="descname">defragment</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.defragment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defragments an existing disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.getAvailableTransportModes">
+<tt class="descname">getAvailableTransportModes</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.getAvailableTransportModes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of available transport modes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">The list of available transport modes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.getMetadata">
+<tt class="descname">getMetadata</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.getMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves the metadata for the drive.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.getTransportMode">
+<tt class="descname">getTransportMode</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.getTransportMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current transport mode.  Must be connected.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">The transport mode</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.grow">
+<tt class="descname">grow</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.grow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grows an existing disk, only local disks are grown.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.info">
+<tt class="descname">info</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves information about a disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.needs_repair">
+<tt class="descname">needs_repair</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.needs_repair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check a sparse disk for internal consistency.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.open">
+<tt class="descname">open</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Open a vmdk for editing or reading (see readonly)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> &#8211; Path to the vmdk.  Example: [System-Disk] DEV-BOX-01/DEV-BOX-01.vmdk</li>
+<li><strong>single</strong> &#8211; Open the disk in single mode.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.read">
+<tt class="descname">read</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a sector range.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>offset</strong> &#8211; Absolute offset.</li>
+<li><strong>nblocks</strong> &#8211; Number of blocks to read.</li>
+</ul>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">np.ndarray of bytes</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Note: SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE (1048576 or 1MB) / VIXDISKLIB_SECTOR_SIZE (512)</dt>
+<dd>SECTORS_PER_BLOCK = 2048 sectors
+1 block = 1048576 byts or 1MB</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.rename">
+<tt class="descname">rename</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.rename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Renames a virtual disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.reopen">
+<tt class="descname">reopen</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.reopen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes and re-opens the current disk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.setMetadata">
+<tt class="descname">setMetadata</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.setMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the metadata to the drive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><strong>metadata</strong> &#8211; The metadata to be written to the drive.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.shrink">
+<tt class="descname">shrink</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.shrink" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shrinks an existing disk, only local disks are shrunk.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.transport_mode">
+<tt class="descname">transport_mode</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.transport_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the current transport mode.  Must be connected.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body">The transport mode</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.unlink">
+<tt class="descname">unlink</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.unlink" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes all extents of the specified disk link. If the path refers to a
+parent disk, the child (redo log) will be orphaned.
+Unlinking the child does not affect the parent.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixDiskBase.VixDiskBase.write">
+<tt class="descname">write</tt><a class="headerlink" href="#vixDiskLib.vixDiskBase.VixDiskBase.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a sector range.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>offset</strong> &#8211; Absolute offset.</li>
+<li><strong>nblocks</strong> &#8211; Number of blocks to read.</li>
+<li><strong>buff</strong> &#8211; np.ndarray of bytes</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Note: SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE (1048576 or 1MB) / VIXDISKLIB_SECTOR_SIZE (512)</dt>
+<dd>SECTORS_PER_BLOCK = 2048 sectors
+1 block = 1048576 bytes or 1MB</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vixDiskLib.vixBase.VixBase">
+<em class="property">class </em><tt class="descclassname">vixDiskLib.vixBase.</tt><tt class="descname">VixBase</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.cleanup">
+<tt class="descname">cleanup</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a cleanup after an unclean shutdown of an application using vix-disklib.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.config">
+<tt class="descname">config</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>The location of the vix-disklib configuration file.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.connect">
+<tt class="descname">connect</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.connect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects the library to the drive using the snapshot reference if provided.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>snapshotRef</strong> &#8211; The reference to a snapshot.  This is only needed if we are connecting to a remote disk.</li>
+<li><strong>transport</strong> &#8211; The transport to use.  If not provided, the best match will be selected.</li>
+<li><strong>readonly</strong> &#8211; If true, opens the disk in read only mode.  This is the default.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.disconnect">
+<tt class="descname">disconnect</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.disconnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Disconnects the library from the drive.  This will call <cite>:py:meth:VixBase.cleanup</cite>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.finalize">
+<tt class="descname">finalize</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frees any memory that we maybe hanging on too.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.initialize">
+<tt class="descname">initialize</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the vix-disklib library and setup logging</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.libdir">
+<tt class="descname">libdir</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.libdir" title="Permalink to this definition">¶</a></dt>
+<dd><p>The location of the vix-disklib libraries.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.readonly">
+<tt class="descname">readonly</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.readonly" title="Permalink to this definition">¶</a></dt>
+<dd><p>The read only flag upon connection.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="vixDiskLib.vixBase.VixBase.reset">
+<tt class="descname">reset</tt><a class="headerlink" href="#vixDiskLib.vixBase.VixBase.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes any open connections, cleans up, and then reconnects.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="vixDiskLib.VixCredentials">
+<em class="property">class </em><tt class="descclassname">vixDiskLib.</tt><tt class="descname">VixCredentials</tt><big>(</big><em>vmxSpec</em>, <em>host</em>, <em>username</em>, <em>password</em><big>)</big><a class="headerlink" href="#vixDiskLib.VixCredentials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>VixDiskLib Credentials to log into a vcenter or ESX server</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="vixDiskLib.VixDiskLib_CreateParams">
+<em class="property">class </em><tt class="descclassname">vixDiskLib.</tt><tt class="descname">VixDiskLib_CreateParams</tt><big>(</big><em>disk_type</em>, <em>adapter_type</em>, <em>hw_version</em>, <em>blocks</em><big>)</big><a class="headerlink" href="#vixDiskLib.VixDiskLib_CreateParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Disk creation parameters</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="requirements.html"
+                        title="previous chapter">1. Requirements</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="exceptions.html"
+                        title="next chapter">4. Exceptions</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="sources/vixDiskLib.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="exceptions.html" title="4. Exceptions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="requirements.html" title="1. Requirements"
+             >previous</a> |</li>
+        <li><a href="index.html">vixDiskLib v0.2.2
+ documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Eric Plaster.
+      Last updated on Sep 12, 2011.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
