@@ -1,3 +1,9 @@
 /build
 /test.py
 *.pyc
+/eggs
+/parts
+/vixDiskLib.egg-info
+/.installed.cfg
+/bin
+/develop-eggs
