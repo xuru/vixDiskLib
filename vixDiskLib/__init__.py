@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-This package defines classes that...
+This package wraps up the vix-disklib library from vmware, and creates binding for python.
 """
 
 

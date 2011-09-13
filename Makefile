@@ -1,6 +1,7 @@
 PYTHON?=python
 SETUPFLAGS=
 TESTRUNNER = $(shell which nosetests)
+API_DOC_DIR=docs/html
 
 all: inplace
 
@@ -24,7 +25,6 @@ clean:
 	-find . \( -name '*.o' -o -name '*.so' -o -name '*.py[cod]' -o -name '*.dll' \) -exec rm -f {} \;
 	-rm vixDiskLib/*.c
 	-rm -rf build dist
-	-rm -rf api_docs/
 
 help:
 	@echo 'Commonly used make targets:'
@@ -45,13 +45,12 @@ help:
 	@echo 'Example for a local installation (usable in this directory):'
 	@echo '  make local && ./hg version'
 
-apidocs: apidocs_html apidocs_pdf
+docs: 
+	-rm -rf $(API_DOC_DIR)
+	-bin/docs
+	
+deploy_docs:
+	ghp-import -m "Updated documentation for version $(VERSION)" -p docs/build/html
 
-apidocs_html: 
-	epydoc --html --config epydoc.conf
 
-apidocs_pdf: 
-	epydoc --pdf --config epydoc.conf 
-	mv api_docs/api.pdf api_docs/dogtail.pdf
-
-.PHONY: help all inplace build clean apidocs apidocs_html apidocs_pdf
+.PHONY: help all inplace build clean docs

@@ -75,12 +75,7 @@ cdef class VixBase(object):
     def cleanup(self):
         """
         Perform a cleanup after an unclean shutdown of an application using vix-disklib.
-        @return tuple:
-            @param numCleanedUp [out] Number of virtual machines that were 
-                successfully cleaned up. -- Can be NULL.
-            @param numRemaining [out] Number of virutal machines that still
-                require cleaning up. -- Can be NULL.
-       """
+        """
         cdef uint32 numCleanedUp, numRemaining
         VixDiskLib_Cleanup(&(self.params), &numCleanedUp, &numRemaining)
 
@@ -107,6 +102,9 @@ cdef class VixBase(object):
         self.cleanup()
       
     def finalize(self):
+        """
+        Frees any memory that we maybe hanging on too.
+        """
         if self.connected:
             self.disconnect()
             
@@ -126,11 +124,23 @@ cdef class VixBase(object):
         self.finalize()
             
     def reset(self):
+        """
+        Closes any open connections, cleans up, and then reconnects.
+        """
         self.finalize()
         usleep(100)
         self.connect()
         
     def connect(self, snapshotRef=None, transport=None, readonly=True):
+        """
+        Connects the library to the drive using the snapshot reference if provided.
+        
+        :param snapshotRef: The reference to a snapshot.  This is only needed if we are connecting to a remote disk.
+        :param transport: The transport to use.  If not provided, the best match will be selected.
+        :param readonly: If true, opens the disk in read only mode.  This is the default.
+
+        """
+        
         if hasattr(self.cred, "host"):
             log.debug("Connecting to %s as %s" % (self.cred.host, self.cred.username))
         cdef char *_transport
@@ -157,6 +167,10 @@ cdef class VixBase(object):
         self.connected = True
         
     def disconnect(self):
+        """
+        Disconnects the library from the drive.  This will call `:py:meth:VixBase.cleanup`.
+        """
+
         if hasattr(self.cred, "host"):
             log.debug("Disconnecting from %s" % self.cred.host)
         

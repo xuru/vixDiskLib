@@ -48,30 +48,44 @@ cdef class VixDiskBase(VixBase):
         self.sectors_per_block = self._block_size / VIXDISKLIB_SECTOR_SIZE
         
     def getTransportMode(self):
+        """
+        Returns the current transport mode.  Must be connected.
+        
+        :return: The transport mode
+        """
         if not self.opened:
             raise VixDiskLibError("Transport mode is not available until a disk is opened.")
         return self._transport_mode
     transport_mode = property(getTransportMode)
     
     def getAvailableTransportModes(self):
+        """
+        Returns a list of available transport modes.
+        
+        :return: The list of available transport modes
+        """
         if not self.opened:
             raise VixDiskLibError("Transport mode is not available until a disk is opened.")
         return VixDiskLib_ListTransportModes().split(":")
     available_modes = property(getAvailableTransportModes)
     
-    def getBlockSize(self):
+    def _getblocksize(self):
         return self._block_size
     
-    def setBlockSize(self, size):
+    def _setblocksize(self, size):
         if size % VIXDISKLIB_SECTOR_SIZE:
             raise VixDiskLibError("block size is not the integral multiple of sector size %d\n" % VIXDISKLIB_SECTOR_SIZE)
         self._block_size = size
-    block_size = property(getBlockSize, setBlockSize)
     
+    block_size = property(_getblocksize, _setblocksize,
+                doc="The block size.")
+
     def open(self, path, single=False):
         """
         Open a vmdk for editing or reading (see readonly)
-        @param path: Path to the vmdk.  Example: [System-Disk] DEV-BOX-01/DEV-BOX-01.vmdk
+        
+        :param path: Path to the vmdk.  Example: [System-Disk] DEV-BOX-01/DEV-BOX-01.vmdk
+        :param single: Open the disk in single mode.
         """
         if not self.vmdk_path:
             self.vmdk_path = path
@@ -157,9 +171,11 @@ cdef class VixDiskBase(VixBase):
     def read(self, VixDiskLibSectorType offset, uint32 nblocks=1):
         """
         Reads a sector range.
-        @param offset: Absolute offset.
-        @param nblocks: Number of blocks to read.
-        @return: np.ndarray of bytes
+        
+        :param offset: Absolute offset.
+        :param nblocks: Number of blocks to read.
+        :return: np.ndarray of bytes
+        
         Note: SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE (1048576 or 1MB) / VIXDISKLIB_SECTOR_SIZE (512)
               SECTORS_PER_BLOCK = 2048 sectors
               1 block = 1048576 byts or 1MB
@@ -185,9 +201,11 @@ cdef class VixDiskBase(VixBase):
     def write(self, VixDiskLibSectorType offset, VixDiskLibSectorType nblocks, np.ndarray[dtype=DTYPE_t] buff):
         """
         Writes a sector range.
-        @param offset: Absolute offset.
-        @param nblocks: Number of blocks to read.
-        @param buff: np.ndarray of bytes
+        
+        :param offset: Absolute offset.
+        :param nblocks: Number of blocks to read.
+        :param buff: np.ndarray of bytes
+        
         Note: SECTORS_PER_BLOCK = DEFAULT_BLOCK_SIZE (1048576 or 1MB) / VIXDISKLIB_SECTOR_SIZE (512)
               SECTORS_PER_BLOCK = 2048 sectors
               1 block = 1048576 bytes or 1MB
@@ -245,6 +263,8 @@ cdef class VixDiskBase(VixBase):
     def setMetadata(self, metadata):
         """
         Writes the metadata to the drive.
+        
+        :param metadata: The metadata to be written to the drive.
         """
         log.debug("Getting metadata for the disk")
         
@@ -258,7 +278,11 @@ cdef class VixDiskBase(VixBase):
     
     def create(self, path, create_params, local_path=None):
         """
-        Creates a local disk. Remote disk creation is not supported.
+        Creates a disk.
+        
+        :param path: The path where the disk will be created.
+        :param create_params: The `:py:class:VixDiskLib_CreateParams` that will be used to create the disk.
+        :param local_path: The path for the local disk, if creating a local disk.
         """
         if not self.connected:
             raise VixDiskLibError("Currently not connected, and trying to open vmdk")

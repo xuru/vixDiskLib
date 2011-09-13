@@ -1,8 +1,3 @@
-'''
-Created on Jul 1, 2011
-
-@author: eplaster
-'''
 from exceptions import Exception
 
 class VixDiskLibError(Exception):
