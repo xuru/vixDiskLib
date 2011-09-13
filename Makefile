@@ -50,7 +50,7 @@ docs:
 	-bin/docs
 	
 deploy_docs:
-	ghp-import -m "Updated documentation for version $(VERSION)" -p docs/build/html
+	ghp-import -m "Updated documentation" -p docs/build/html
 
 
 .PHONY: help all inplace build clean docs
