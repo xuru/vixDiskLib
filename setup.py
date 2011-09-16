@@ -24,10 +24,13 @@
 '''
 vixDiskLib - python wrapper for vixDiskLib (in C)
 '''
-
+import os.path
 from distutils.core import setup
 import platform
 from Cython.Build import cythonize
+
+location = os.path.abspath(os.path.dirname(__file__))
+version = open(os.path.join(location, "vixDiskLib", "__init__.py")).readline().split()[-1].strip("'")
 
 # we need to make sure we have these to python modules in our path
 install_requires = ["Cython", "numpy"]
@@ -40,7 +43,7 @@ else:
     
 setup( 
     name = 'vixDiskLib',
-    version = open('VERSION').read(),
+    version = version,
     description = "vixDiskLib wrapper in Python",
     author = "Eric Plaster",
     author_email = "plaster at gmail.com",

@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+__version__ = '0.9'
+Version = __version__ # for backware compatibility
+
 """
 This package wraps up the vix-disklib library from vmware, and creates binding for python.
 """
