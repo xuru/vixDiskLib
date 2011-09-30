@@ -188,6 +188,9 @@ cdef class VixDiskBase(VixBase):
         
         nbytes = (sectors_to_read * VIXDISKLIB_SECTOR_SIZE)
         
+        if self.buff == None:
+            self.buff = np.empty(nbytes, dtype=DTYPE_t)
+            
         if self.buff.size != nbytes:
             log.debug("Resizing buffer to %d" % nbytes)
             self.buff.resize(nbytes)
