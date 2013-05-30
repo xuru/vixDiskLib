@@ -87,8 +87,7 @@ cdef class VixDiskBase(VixBase):
         :param path: Path to the vmdk.  Example: [System-Disk] DEV-BOX-01/DEV-BOX-01.vmdk
         :param single: Open the disk in single mode.
         """
-        if not self.vmdk_path:
-            self.vmdk_path = path
+        self.vmdk_path = path
         
         if not self.connected:
             raise VixDiskLibError("Currently not connected, and trying to open vmdk")
