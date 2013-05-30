@@ -26,8 +26,10 @@ vixDiskLib - python wrapper for vixDiskLib (in C)
 '''
 import os, os.path
 import platform
+
 from distutils.core import setup
 from Cython.Build import cythonize
+import numpy
 
 location = os.path.abspath(os.path.dirname(__file__))
 os.chdir(location)
@@ -54,6 +56,7 @@ setup(
     platforms=["any"],
     license = "MIT",
     requires = install_requires,
+    include_dirs = [numpy.get_include()],
     ext_modules = cythonize(['vixDiskLib/vixBase.pyx', 'vixDiskLib/vixDiskBase.pyx'], aliases={'VMWARE_LIBDIR': libdir}),
     packages = ["vixDiskLib"],
     classifiers = ['Development Status :: 4 - Beta',
@@ -64,6 +67,6 @@ setup(
                    'Programming Language :: Python',
                    'Topic :: Software Development :: Libraries :: Python Modules',
                    ],
-    )
+))
 
 
